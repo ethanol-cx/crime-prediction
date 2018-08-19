@@ -1,4 +1,6 @@
 Credit to: Data Science Lab at USC
+
+
 Edit config.py for parameter settings:
     ignoreFirst - int: Minimum amount of training periods
     periodsAhead_list - List of ints: Periods ahead to forecast
