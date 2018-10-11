@@ -7,7 +7,8 @@
 
 
 ## Introduction
-    This tool implements a crime prediction algorithm in a geological space using heterogeneous clustering and an evaluation metric. The algorithm is proposed by the Data Science Lab at USC. The tool is developed by Data Science Lab at USC (http://dslab.usc.edu/).
+
+This tool implements a crime prediction algorithm in a geological space using heterogeneous clustering and an evaluation metric. The algorithm is proposed by the Data Science Lab at USC. The tool is developed by Data Science Lab at USC (http://dslab.usc.edu/).
 
 
 ## Getting Started
