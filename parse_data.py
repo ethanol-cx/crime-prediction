@@ -10,7 +10,6 @@ def parse_data(ifilename, ofilename):
     data = data[["DR Number", "Crime Code Description", "Location ",
                  "timeAndDate"]]
     data.columns = ["CaseNbr", "Category", "Location", "time"]
-    
 
     def get_latitude(row):
         return float(row["Location"].split(",")[0][1:])
@@ -35,7 +34,6 @@ def parse_data(ifilename, ofilename):
                 (data["latitude"] < 34.35) &
                 (data["longitude"] > -118.75) &
                 (data["longitude"] < -117.75)]
-    
     data.columns = [["#", "Category", "Latitude", "Longitude", "Timestamp"]]
 
     def get_date(row):
@@ -54,5 +52,4 @@ def parse_data(ifilename, ofilename):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         raise Exception("Usage: python parse_data.py [input file name].pkl [output file name].pkl")
-
     parse_data(sys.argv[1], sys.argv[2])

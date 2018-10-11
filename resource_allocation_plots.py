@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 import config
 
+
 def printGrids(periodsAhead):
     %matplotlib inline
     plt.close('all')
@@ -60,5 +61,6 @@ def printClusterGrids(periodsAhead):
         'results/cluster/{}week_clusters.png'.format(periodsAhead), dpi=300)
     plt.show()
 
+
 def main:
-    for periodsAhead in 
+    for periodsAhead in

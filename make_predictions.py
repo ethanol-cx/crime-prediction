@@ -2,7 +2,6 @@ import pickle
 import pandas as pd
 import sys
 import os
-# sys.path.append(os.path.abspath("fwdfiles/"))
 import fwdfiles.forecast_harmonic as forecast_harmonic
 import fwdfiles.forecast_mean as forecast_mean
 import fwdfiles.forecast_ar as forecast_ar
@@ -10,7 +9,6 @@ from fwdfiles.general_functions import *
 from fwdfiles.cluster_functions import *
 from fwdfiles.ScriptForecast import computeClustersAndOrganizeData
 import config
-from rpy2.robjects.packages import importr
 
 
 def savePredictions(clusters, realCrimes, forecasts, algo,
@@ -31,8 +29,8 @@ def savePredictions(clusters, realCrimes, forecasts, algo,
 
 
 def saveParameters(orders, seasonal_orders, algo,
-                    gridshape=(60, 85), ignoreFirst=149,
-                    periodsAhead=52, threshold=4000, maxDist=5):
+                   gridshape=(60, 85), ignoreFirst=149,
+                   periodsAhead=52, threshold=4000, maxDist=5):
     # save it to disk
     os.makedirs(os.path.abspath("parameters/"), exist_ok=True)
     os.makedirs(os.path.abspath("parameters/{}".format(algo)), exist_ok=True)
@@ -46,19 +44,17 @@ def saveParameters(orders, seasonal_orders, algo,
     output.close()
     return
 
+
 def predict(data, gridshape, ignoreFirst, periodsAhead, threshold, maxDist, methods, clusters, realCrimes,
             mm_orders, ar_orders, h_orders, mm_seasonal_orders, ar_seasonal_orders, h_seasonal_orders):
     if "mm" in methods:
-        forecast_mean.init_predictions_Mean()
         mm_forecasts, mm_orders, mm_seasonal_orders = forecast_mean.predictions_Mean(
             clusters, realCrimes, periodsAhead, mm_orders, mm_seasonal_orders)
         savePredictions(clusters, realCrimes, mm_forecasts, "mm",
                         gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
         saveParameters(mm_orders, mm_seasonal_orders, "mm",
                        gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
-
     if "ar" in methods:
-        forecast_ar.init_predictions_AR()
         ar_forecasts, ar_orders, ar_seasonal_orders = forecast_ar.predictions_AR(
             clusters, realCrimes, periodsAhead, ar_orders, ar_seasonal_orders)
         savePredictions(clusters, realCrimes, ar_forecasts, "ar",
@@ -66,25 +62,26 @@ def predict(data, gridshape, ignoreFirst, periodsAhead, threshold, maxDist, meth
         saveParameters(ar_orders, ar_seasonal_orders, "ar",
                        gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
     if "harmonic" in methods:
-        forecast_harmonic.init_predictions_Harmonic()
-        h_forecasts, h_orders, h_seasonal_orders = forecast_harmonic.predictions_Harmonic(clusters, realCrimes, periodsAhead, h_orders, h_seasonal_orders)
+        h_forecasts, h_orders, h_seasonal_orders = forecast_harmonic.predictions_Harmonic(
+            clusters, realCrimes, periodsAhead, h_orders, h_seasonal_orders)
         savePredictions(clusters, realCrimes, h_forecasts, "harmonic",
                         gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
         saveParameters(h_orders, h_seasonal_orders, "harmonic",
-                               gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
+                       gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
 
     return mm_orders, mm_seasonal_orders, ar_orders, ar_seasonal_orders, h_orders, h_seasonal_orders
+
 
 def compute_grid_predictions(data, gridshapes, ignoreFirst, periodsAhead_list,
                              threshold, maxDist, methods):
     for gridshape in gridshapes:
-        mm_orders = [(0,0,0)]
-        mm_seasonal_orders = [(0,0,0,0)]
-        ar_orders = [(0,0,0)]
-        ar_seasonal_orders = [(0,0,0,0)]
-        h_orders = [(0,0,0)]
-        h_seasonal_orders = [(0,0,0,0)]
-        print('Computing clusters ...')
+        mm_orders = [(0, 0, 0)]
+        mm_seasonal_orders = [(0, 0, 0, 0)]
+        ar_orders = [(0, 0, 0)]
+        ar_seasonal_orders = [(0, 0, 0, 0)]
+        h_orders = [(0, 0, 0)]
+        h_seasonal_orders = [(0, 0, 0, 0)]
+        print('Computing grid clusters ...')
         clusters, realCrimes = computeClustersAndOrganizeData(
             data, gridshape, ignoreFirst, 0, threshold, maxDist)
         print('Number of clusters: {}'.format(len(clusters)))
@@ -99,13 +96,13 @@ def compute_cluster_predictions(data, gridshape, ignoreFirst,
                                 periodsAhead_list,
                                 thresholds, maxDist, methods):
     for threshold in thresholds:
-        mm_orders = [(0,0,0)]
-        mm_seasonal_orders = [(0,0,0,0)]
-        ar_orders = [(0,0,0)]
-        ar_seasonal_orders = [(0,0,0,0)]
-        h_orders = [(0,0,0)]
-        h_seasonal_orders = [(0,0,0,0)]
-        print('Computing clusters ...')
+        mm_orders = [(0, 0, 0)]
+        mm_seasonal_orders = [(0, 0, 0, 0)]
+        ar_orders = [(0, 0, 0)]
+        ar_seasonal_orders = [(0, 0, 0, 0)]
+        h_orders = [(0, 0, 0)]
+        h_seasonal_orders = [(0, 0, 0, 0)]
+        print('Computing cluster clusters ...')
         clusters, realCrimes = computeClustersAndOrganizeData(
             data, gridshape, ignoreFirst, 0, threshold, maxDist)
         print(clusters)
@@ -119,8 +116,6 @@ def compute_cluster_predictions(data, gridshape, ignoreFirst,
 
 def main(ifilename):
     data = pd.read_pickle(ifilename)
-    # base = importr('base')
-    # print(base._libPaths())
 
     # Uniform grid predictions
     print("Making grid predictions...")

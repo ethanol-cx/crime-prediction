@@ -1,19 +1,10 @@
-#!/usr/bin/env python
-
 import pickle
 import numpy as np
 import pysal as ps
 from scipy import sparse
-
 from datetime import date
 from datetime import timedelta
-
 import pandas as pd
-from pandas import TimeGrouper
-
-
-
-
 
 # prediction functions
 import fwdfiles.forecast_harmonic as forecast_harmonic
@@ -30,11 +21,7 @@ from fwdfiles.general_functions import *
 from fwdfiles.cluster_functions import *
 
 
-
-#
 # Main script code
-#
-
 # compute the grid and organize the data into custers and weekly forecast
 def computeClustersAndOrganizeData(ts, gridshape=(60,85), ignoreFirst=149, periodsAhead=52, threshold=4000, maxDist=5):
 
@@ -52,38 +39,27 @@ def computeClustersAndOrganizeData(ts, gridshape=(60,85), ignoreFirst=149, perio
         | (newDataGrid.Category == 'VANDALISM - MISDEAMEANOR ($399 OR UNDER)')]
     ts = newDataGrid.groupby(['LatCell', 'LonCell', 'Date']).Hour.count().rename('Crimes').reset_index()
     ts.index = pd.DatetimeIndex(ts.Date)
-    
+
     # compute clusters using threshold and max distance from the border
-    clusters, grid = None, None
-    #if (no_cluster):
-    #    clusters = initializeGeometries(ts, ignoreFirst, gridshape)
-    #else:
-        #clusters, grid = computeClusters(ts, ignoreFirst, threshold=threshold, maxDist=maxDist, gridshape=gridshape)
-    
     clusters, grid = computeClusters(ts, ignoreFirst, threshold=threshold, maxDist=maxDist, gridshape=gridshape)
-    # grid = clusters.loc['Geometry']
     clusters = clusters.sort_values(by=['Crimes'], ascending=False)
-    
-    
-    #
+
+
+
     # Organize data to weekly crimes
-    #
     # create a dataframe with all weeks
-    
     # range of prediction, filling missing values with 0
     dailyIdx = pd.date_range(start=ts.Date.min(), end=ts.Date.max(), freq='D', name='Date')
     weeklyIdx = pd.date_range(start=ts.Date.min(), end=ts.Date.max(), freq='W', name='Date')
-    
+
     # dataframe with real crimes and clusters
     realCrimes = pd.DataFrame().reindex(weeklyIdx)
     # add crimes per cluster
     for selCluster in clusters.Cluster.values:
         # find geometry (cells) of the cluster
-        
+
         selGeometry = clusters[clusters.Cluster ==
                                selCluster].Geometry.values[0].nonzero()
-        print(list(
-            zip(*selGeometry)))
         # filter crimes inside the geometry
         weeks = ts.copy().set_index(['LatCell', 'LonCell']).loc[list(
             zip(*selGeometry))].groupby(by=['Date']).Crimes.sum().reset_index()
@@ -95,7 +71,6 @@ def computeClustersAndOrganizeData(ts, gridshape=(60,85), ignoreFirst=149, perio
 
         for value in clusters[clusters.Cluster == selCluster].Geometry.values[1:]:
             selGeometry = value.nonzero()
-
             # filter crimes inside the geometry
             weeks_t = ts.copy().set_index(['LatCell', 'LonCell']).loc[list(zip(*selGeometry))].groupby(by=['Date']).Crimes.sum().reset_index()
             weeks_t.index = pd.DatetimeIndex(weeks_t.Date)
@@ -105,9 +80,6 @@ def computeClustersAndOrganizeData(ts, gridshape=(60,85), ignoreFirst=149, perio
         # save crimes in dataframe
         realCrimes = realCrimes.join(weeks)
 
-    # remove week 53
-    realCrimes = realCrimes.loc[realCrimes.index.strftime('%U')!='53']
-    
     return (clusters, realCrimes)
 
 
@@ -121,13 +93,10 @@ def savePredictions(clusters, realCrimes, forecasts, gridshape=(60,85), ignoreFi
     return
 
 
-
-#
 # Main code
-#
 def main():
     conf = checkSyntax()
-    
+
     # Loading data
     data = pd.read_csv(conf.filename) \
         .rename(columns={'CaseNbr':'#', 'latitude':'Latitude', 'longitude':'Longitude', 'time':'Timestamp'}) \
@@ -160,16 +129,10 @@ def main():
     data = data[(34.015<=data.Latitude) & (data.Latitude<=34.038)]
     data = data[(-118.297<=data.Longitude) & (data.Longitude<=-118.27)]
 
-    # removing outliers
-    #data = data[reject_outliers_IQR_range(data['Latitude'], [0.005, 0.995], returnMask=True)]
-    #data = data[reject_outliers_IQR_range(data['Longitude'], [0.005, 0.995], returnMask=True)]
-    #data = data[reject_outliers_IQR_range(data['Timestamp'], [0.005, 0.995], returnMask=True)]
-
-
     # compute the forecasts
     print('Computing clusters ...')
     clusters, realCrimes = computeClustersAndOrganizeData(data, conf.gridshape, conf.ignoreFirst, conf.periodsAhead, conf.threshold, conf.maxDist)
-    
+
     print('Computing predictions ...')
     forecasts = None
     if (conf.args.f_harmonic):
@@ -184,6 +147,6 @@ def main():
     savePredictions(clusters, realCrimes, forecasts, conf.gridshape, conf.ignoreFirst, conf.periodsAhead, conf.threshold, conf.maxDist)
 
     print('Done!!!')
-    
+
 if __name__ == "__main__":
     main()
