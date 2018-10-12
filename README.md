@@ -41,6 +41,7 @@ This tool implements a crime prediction algorithm in a geological space using he
     resource_indexes - List of int: List of amount of  resources to use for evaluation (RA calculation)
     cell_coverage_units - int: Number of resources needed to cover each cell (RA calculation)
 5. Sample usage for forecasting & evaluation (using `LAdata.pkl`):
+
     ```
     python parse_data.py data14to16sorted.pkl LAdata.pkl
     python make_predictions.py LAdata.pkl

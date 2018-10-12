@@ -56,5 +56,6 @@ def predictions_Harmonic(clusters, realCrimes, periodsAhead=52, orders=[(0, 0)],
     forecasts = pd.DataFrame(forecast_data.T, columns=['C{}_Forecast'.format(c)
                                                        for c in clusters.Cluster.values])
     df = realCrimes['C1_Crimes']
+
     forecasts.index = df[-test_size:].index
     return forecasts, orders, seasonal_orders

@@ -24,10 +24,18 @@ def gridLatLong(data, gridshape=[10, 10], inplace=False, verbose=False):
                                 for i in np.array(data.Latitude)]).flatten()
     data['LonCell'] = np.array([defBin(i, LonMin, LonMax, gridshape[1])
                                 for i in np.array(data.Longitude)]).flatten()
-    if verbose:
-        print('Cells with',
-              haversine(((LatMax-LatMin)/gridshape[0], 0), (0, 0))*1000,
-              'per',
-              haversine((0, (LonMax-LonMin)/gridshape[1]), (0, 0))*1000,
-              'meters')
+    return data
+
+
+def add_ElapsedWeeks(data, inplace=False):
+    if not inplace:
+        data = data.copy()
+    data.Date = [pd.to_datetime(
+        x, format='%Y-%m-%d', errors='ignore') for x in data.Date]
+    minDate = data.Date.min()
+    # start the week on Monday
+    minDate = (minDate - timedelta(days=minDate.weekday()))
+
+    data['ElapsedWeeks'] = (data.Date-minDate).apply(lambda f: f.days // 7)
+
     return data

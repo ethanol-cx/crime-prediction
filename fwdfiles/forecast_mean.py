@@ -54,5 +54,5 @@ def predictions_Mean(clusters, realCrimes, periodsAhead=52, orders=[(0, 0)], sea
                                                        for c in clusters.Cluster.values])
     df = realCrimes['C1_Crimes']
     forecasts.index = df[-test_size:].index
-    print(forecasts)
+
     return forecasts, orders, seasonal_orders
