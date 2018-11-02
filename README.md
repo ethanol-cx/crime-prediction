@@ -13,8 +13,8 @@ This tool implements a crime prediction algorithm in a geological space using he
 
 ## Getting Started
 
-1. Install Python
-2. Install Jupyter Notebook (only if you want to visualize the results)
+1. Install [Python]()
+2. Install [Jupyter Notebook](http://jupyter.org/install) (only if you want to visualize the results)
 3. Install all the packages listed in packages.txt. If you have [pip](https://pypi.org/project/pip/) installed, you could run `pip install -r packages.txt` to install all the packages.
 4. Edit config.py for parameter settings:
 
