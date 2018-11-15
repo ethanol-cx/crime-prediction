@@ -22,24 +22,21 @@ def predictions_Mean(clusters, realCrimes, periodsAhead=52, orders=[(0, 0)], sea
         df = realCrimes['C{}_Crimes'.format(c)]
         train = df[:-test_size]
         test = df[-test_size:]
-        # if (periodsAhead == 1) or len(orders) == 1:
-        #     stepwise_model = auto_arima(train, start_p=0, start_q=0,
-        #                                 max_q=5, max_p=0, m=52,
-        #                                 start_P=0, max_P=0, start_Q=0, max_Q=5, seasonal=True,
-        #                                 trace=True,
-        #                                 error_action='ignore',
-        #                                 suppress_warnings=True,
-        #                                 stepwise=True, disp=0)
-        #     print(stepwise_model.order)
-        #     print(stepwise_model.seasonal_order)
-        #     orders.append(stepwise_model.order)
-        #     seasonal_orders.append(stepwise_model.seasonal_order)
-        # pred_model = sm.tsa.statespace.SARIMAX(
-        #     df, order=orders[columnCntr+1], seasonal_order=seasonal_orders[columnCntr+1], enforce_stationarity=False, enforce_invertibility=False)
-        # pred_model = sm.tsa.statespace.SARIMAX(
-        #     df, order=(0,1,1), seasonal_order=(0,0,0,52), enforce_stationarity=False, enforce_invertibility=False)
+        if (periodsAhead == 1) or len(orders) == 1:
+            stepwise_model = auto_arima(train, start_p=0, start_q=0,
+                                        max_q=5, max_p=0, m=52,
+                                        start_P=0, max_P=0, start_Q=0, max_Q=5, seasonal=True,
+                                        trace=True,
+                                        error_action='ignore',
+                                        suppress_warnings=True,
+                                        stepwise=True, disp=0)
+            orders.append(stepwise_model.order)
+            seasonal_orders.append(stepwise_model.seasonal_order)
         pred_model = sm.tsa.statespace.SARIMAX(
-            df, order=(0, 1, 1), seasonal_order=(0, 0, 0, 52), enforce_stationarity=False, enforce_invertibility=False)
+            df, order=orders[columnCntr+1], seasonal_order=seasonal_orders[columnCntr+1], enforce_stationarity=False, enforce_invertibility=False)
+        #  for quick result, we could use the following combination of hyperparameters.
+        # pred_model = sm.tsa.statespace.SARIMAX(
+        #     df, order=(0, 1, 1), seasonal_order=(0, 0, 0, 52), enforce_stationarity=False, enforce_invertibility=False)
         coef_results = pred_model.fit(disp=0)
         predictions = np.zeros(test_size)
         for i in range(0, test_size - 1):

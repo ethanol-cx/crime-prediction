@@ -131,12 +131,6 @@ def main():
     data = data[(34.015<=data.Latitude) & (data.Latitude<=34.038)]
     data = data[(-118.297<=data.Longitude) & (data.Longitude<=-118.27)]
 
-    # removing outliers
-    #data = data[reject_outliers_IQR_range(data['Latitude'], [0.005, 0.995], returnMask=True)]
-    #data = data[reject_outliers_IQR_range(data['Longitude'], [0.005, 0.995], returnMask=True)]
-    #data = data[reject_outliers_IQR_range(data['Timestamp'], [0.005, 0.995], returnMask=True)]
-
-
     # compute the forecasts
     print('Computing clusters ...')
     clusters, realCrimes = computeClustersAndOrganizeData(data, conf.gridshape, conf.ignoreFirst, conf.periodsAhead, conf.threshold, conf.maxDist)

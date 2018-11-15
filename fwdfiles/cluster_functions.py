@@ -40,7 +40,7 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
         # ignore agglutination if greater than threshold (or with itself)
         # colisions = colisions.loc[np.array(colisions.Cluster!=row.Cluster) & np.array((colisions.Crimes+row.Crimes)<=threshold)]
         colisions = colisions.loc[[(x not in alreadyExpanded) for x in colisions.Cluster]]
-        
+
         possible = 0
         while trainingGrid.loc[row.name, 'Crimes'] < threshold and colisions.shape[0] > possible:
             # commit agglutination (using the smaller id possible)
@@ -50,9 +50,9 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                 # do not use clusters already expanded
                 if aggRow.Cluster in alreadyExpanded:
                     continue
-                
+
                 alreadyExpanded.add(aggRow.Cluster)
-                
+
                 #add the colisions/neighbours of the newly merged cell that belong to no clusters into our potential merging list of thie "row" cell.
                 newColisions = trainingGrid.loc[trainingGrid.Cluster.isin(
                     aggRow.Colisions)].sort_values(by=['Crimes'], ascending=False)
@@ -91,22 +91,21 @@ def initializeGeometries(ts, ignoreFirst, gridshape):
     trainingGrid['Geometry'] = [sparse.coo_matrix( ([g+1], ([lat], [lon])), shape=gridshape).tocsr() for (g, (lat, lon)) in enumerate(trainingGrid.index)]
     trainingGrid['Dilatation'] = None
     return trainingGrid
-        
+
 def computeClusters(ts, ignoreFirst, threshold = 500, maxDist = 85, gridshape=(60,85)):
     """Compute clusters agglutinating collisions
-    
+
     Keyword arguments:
     ts        -- Date indexed DataFrame with ['LatCell', 'LonCell', 'Crimes']
     maxDist   -- consider up to maxDist(included) units ahead: [1, maxDist]
     threshold -- max amount of crimes per cluster
-    
+
     Return: cluster of the training grid
     """
-    
+
     # initialize the trainingGrid with geometries
     trainingGrid = initializeGeometries(ts, ignoreFirst, gridshape)
-    print(trainingGrid['Crimes'])
-    
+
     # dilatation mask
     # * * *
     # * x *        while (initial != trainingGrid.shape[0]):
@@ -114,15 +113,15 @@ def computeClusters(ts, ignoreFirst, threshold = 500, maxDist = 85, gridshape=(6
     # * * *
     mask_unit = np.array([(-1,-1), (-1,0), (0,-1), (1,1), (1,0), (0,1), (-1,1), (1,-1)])
     mask = [(0,0)]
-    
+
     # create grid board with the clustering labels
     grid = sparse.csr_matrix(gridshape, dtype=np.int32)
     for row in trainingGrid.Geometry.values:
         grid = row.tocsr() + grid
-    
+
     # Increase thickness of the border for colision: [1, maxDist]
     for sqrt_dist in range (1, maxDist+1):
-        
+
         # expand border mask
         mask = np.array( list(set(map(tuple, np.concatenate([coord + mask_unit for coord in mask]) )) - {(0,0)}) )
 

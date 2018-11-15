@@ -5,7 +5,6 @@ import os
 
 def parse_data(ifilename, ofilename):
     ofilename = os.path.abspath(ofilename)
-
     data = pd.read_pickle(ifilename)
     data = data[["DR Number", "Crime Code Description", "Location ",
                  "timeAndDate"]]
@@ -37,7 +36,6 @@ def parse_data(ifilename, ofilename):
     data.columns = [["#", "Category", "Latitude", "Longitude", "Timestamp"]]
 
     def get_date(row):
-        # print(row["Timestamp"])
         return row["Timestamp"].dt.date
 
     def get_hour(row):
@@ -49,7 +47,9 @@ def parse_data(ifilename, ofilename):
     data = data.set_index("#")
     data.to_pickle(ofilename)
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        raise Exception("Usage: python parse_data.py [input file name].pkl [output file name].pkl")
+        raise Exception(
+            "Usage: python parse_data.py [input file name].pkl [output file name].pkl")
     parse_data(sys.argv[1], sys.argv[2])

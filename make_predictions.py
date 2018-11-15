@@ -59,7 +59,7 @@ def predict(data, gridshape, ignoreFirst, periodsAhead, threshold, maxDist, meth
         # mm_seasonal_orders = orders[1]
 
         mm_forecasts, mm_orders, mm_seasonal_orders = forecast_mean.predictions_Mean(
-            clusters, realCrimes, periodsAhead, None, None)
+            clusters, realCrimes, periodsAhead, mm_orders, mm_seasonal_orders)
         savePredictions(clusters, realCrimes, mm_forecasts, "mm",
                         gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
         # saveParameters(mm_orders, mm_seasonal_orders, "mm",
@@ -77,7 +77,7 @@ def predict(data, gridshape, ignoreFirst, periodsAhead, threshold, maxDist, meth
         # ar_seasonal_orders = orders[1]
 
         ar_forecasts, ar_orders, ar_seasonal_orders = forecast_ar.predictions_AR(
-            clusters, realCrimes, periodsAhead, None, None)
+            clusters, realCrimes, periodsAhead, ar_orders, ar_seasonal_orders)
         savePredictions(clusters, realCrimes, ar_forecasts, "ar",
                         gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
         # saveParameters(ar_orders, ar_seasonal_orders, "ar",
@@ -94,7 +94,7 @@ def predict(data, gridshape, ignoreFirst, periodsAhead, threshold, maxDist, meth
         # h_seasonal_orders = orders[1]
 
         h_forecasts, h_orders, h_seasonal_orders = forecast_harmonic.predictions_Harmonic(
-            clusters, realCrimes, periodsAhead, None, None)
+            clusters, realCrimes, periodsAhead, h_orders, h_seasonal_orders)
         savePredictions(clusters, realCrimes, h_forecasts, "harmonic",
                         gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
         # saveParameters(h_orders, h_seasonal_orders, "harmonic",
@@ -146,15 +146,13 @@ def compute_cluster_predictions(data, gridshape, ignoreFirst,
 
 def main(ifilename):
     data = pd.read_pickle(ifilename)
-    # base = importr('base')
-    # print(base._libPaths())
 
     # Uniform grid predictions
-    # print("Making grid predictions...")
-    # compute_grid_predictions(data, config.ug_gridshapes, config.ignoreFirst,
-    #                          config.periodsAhead_list, config.ug_threshold,
-    #                          config.ug_maxDist, config.ug_methods)
-    # print("Grid predictions done!")
+    print("Making grid predictions...")
+    compute_grid_predictions(data, config.ug_gridshapes, config.ignoreFirst,
+                             config.periodsAhead_list, config.ug_threshold,
+                             config.ug_maxDist, config.ug_methods)
+    print("Grid predictions done!")
 
     # Cluster predictions
     print("Making cluster predictions...")
