@@ -75,9 +75,6 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                 trainingGrid.drop(aggRow.name, inplace=True)
                 break # just expand once
 
-            #else:
-                #print('Geometry {} (cluster {}) without possible agglutination (this round)'.format(geo, row.Cluster))
-
         # compute next geometry
         iGeo += 1
     return (trainingGrid, grid)

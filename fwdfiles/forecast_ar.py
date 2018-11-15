@@ -30,8 +30,6 @@ def predictions_AR(clusters, realCrimes, periodsAhead=52, orders=[(0, 0)], seaso
                                         error_action='ignore',
                                         suppress_warnings=True,
                                         stepwise=True, disp=0)
-            print(stepwise_model.order)
-            print(stepwise_model.seasonal_order)
             orders.append(stepwise_model.order)
             seasonal_orders.append(stepwise_model.seasonal_order)
         pred_model = sm.tsa.statespace.SARIMAX(
@@ -42,7 +40,6 @@ def predictions_AR(clusters, realCrimes, periodsAhead=52, orders=[(0, 0)], seaso
 
         coef_results = pred_model.fit(disp=0)
         # The test set starts at 2016-01-03
-        # print(test.index)
         predictions = np.zeros(test_size)
         for i in range(0, test_size - 1):
             temp_pred = coef_results.get_prediction(

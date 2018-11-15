@@ -43,44 +43,40 @@ def computeClustersAndOrganizeData(ts, gridshape=(60,85), ignoreFirst=149, perio
 
     dataGrid = gridLatLong(ts.copy(), gridshape, verbose=True)
     dataGrid = pd.DataFrame(dataGrid)
-    print(dataGrid.head)
-    print("number ", len(dataGrid))
     newDataGrid = pd.DataFrame(
         {'Category': np.array(dataGrid['Category']).flatten(), 'Latitude': np.array(dataGrid['Latitude']).flatten(), 'Longitude': np.array(dataGrid['Longitude']).flatten(), 'Date': np.array(dataGrid['Date']).flatten(), 'Hour': np.array(dataGrid['Hour']).flatten(), 'LatCell': np.array(dataGrid['LatCell']).flatten(), 'LonCell': np.array(dataGrid['LonCell']).flatten()})
     ts = newDataGrid.groupby(['LatCell', 'LonCell', 'Date']).Hour.count().rename('Crimes').reset_index()
     ts.index = pd.DatetimeIndex(ts.Date)
-    
+
     # compute clusters using threshold and max distance from the border
     clusters, grid = None, None
     #if (no_cluster):
     #    clusters = initializeGeometries(ts, ignoreFirst, gridshape)
     #else:
         #clusters, grid = computeClusters(ts, ignoreFirst, threshold=threshold, maxDist=maxDist, gridshape=gridshape)
-    
+
     clusters, grid = computeClusters(ts, ignoreFirst, threshold=threshold, maxDist=maxDist, gridshape=gridshape)
     # grid = clusters.loc['Geometry']
     clusters = clusters.sort_values(by=['Crimes'], ascending=False)
-    
-    
+
+
     #
     # Organize data to weekly crimes
     #
     # create a dataframe with all weeks
-    
+
     # range of prediction, filling missing values with 0
     dailyIdx = pd.date_range(start=ts.Date.min(), end=ts.Date.max(), freq='D', name='Date')
     weeklyIdx = pd.date_range(start=ts.Date.min(), end=ts.Date.max(), freq='W', name='Date')
-    
+
     # dataframe with real crimes and clusters
     realCrimes = pd.DataFrame().reindex(weeklyIdx)
     # add crimes per cluster
     for selCluster in clusters.Cluster.values:
         # find geometry (cells) of the cluster
-        
+
         selGeometry = clusters[clusters.Cluster ==
                                selCluster].Geometry.values[0].nonzero()
-        print(list(
-            zip(*selGeometry)))
         # filter crimes inside the geometry
         weeks = ts.copy().set_index(['LatCell', 'LonCell']).loc[list(
             zip(*selGeometry))].groupby(by=['Date']).Crimes.sum().reset_index()
@@ -104,7 +100,7 @@ def computeClustersAndOrganizeData(ts, gridshape=(60,85), ignoreFirst=149, perio
 
     # remove week 53
     realCrimes = realCrimes.loc[realCrimes.index.strftime('%U')!='53']
-    
+
     return (clusters, realCrimes)
 
 
@@ -124,7 +120,7 @@ def savePredictions(clusters, realCrimes, forecasts, gridshape=(60,85), ignoreFi
 #
 def main():
     conf = checkSyntax()
-    
+
     # Loading data
     data = pd.read_csv(conf.filename) \
         .rename(columns={'CaseNbr':'#', 'latitude':'Latitude', 'longitude':'Longitude', 'time':'Timestamp'}) \
@@ -166,7 +162,7 @@ def main():
     # compute the forecasts
     print('Computing clusters ...')
     clusters, realCrimes = computeClustersAndOrganizeData(data, conf.gridshape, conf.ignoreFirst, conf.periodsAhead, conf.threshold, conf.maxDist)
-    
+
     print('Computing predictions ...')
     forecasts = None
     if (conf.args.f_harmonic):
@@ -181,6 +177,6 @@ def main():
     savePredictions(clusters, realCrimes, forecasts, conf.gridshape, conf.ignoreFirst, conf.periodsAhead, conf.threshold, conf.maxDist)
 
     print('Done!!!')
-    
+
 if __name__ == "__main__":
     main()

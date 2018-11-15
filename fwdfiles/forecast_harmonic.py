@@ -29,8 +29,6 @@ def predictions_Harmonic(clusters, realCrimes, periodsAhead=52, orders=[(0, 0)],
                                         error_action='ignore',
                                         suppress_warnings=True,
                                         stepwise=True, disp=0)
-            print(stepwise_model.order)
-            print(stepwise_model.seasonal_order)
             orders.append(stepwise_model.order)
             seasonal_orders.append(stepwise_model.seasonal_order)
         pred_model = sm.tsa.statespace.SARIMAX(
