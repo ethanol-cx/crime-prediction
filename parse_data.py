@@ -5,8 +5,8 @@ import os
 
 def parse_data(ifilename, ofilename):
     ofilename = os.path.abspath(ofilename)
-    data = pd.read_pickle(ifilename)
-    data = data[['CaseNbr', 'Category', 'Latitude', 'Longitude', 'Date', ]]
+    data = pd.read_csv(ifilename)
+    data = data[['Category', 'Latitude', 'Longitude', 'Date']]
 
     print("Minimum latitude: %f" % min(data["Latitude"]))
     print("Maximum latitude: %f" % max(data["Latitude"]))
@@ -17,8 +17,6 @@ def parse_data(ifilename, ofilename):
     # Select square window
     data = data[(34.015 <= data.Latitude) & (data.Latitude <= 34.038)
                 & (-118.297 <= data.Longitude) & (data.Longitude <= -118.27)]
-    data.columns = [["#", "Category", "Latitude", "Longitude", "Date"]]
-    data = data.set_index("#")
     print("Number of datapoints after selecting: {}".format(len(data.index)))
     data.to_pickle(ofilename)
 
