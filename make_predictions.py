@@ -33,11 +33,11 @@ def main(ifilename):
     # Uniform grid predictions
     if config.grid_prediction == 1:
         print("Making grid predictions...")
-        for threshold in config.c_thresholds:
-            print("Grid prediction with threshold {}".format(threshold))
-            compute_predictions(data=data, gridshapes=config.ug_gridshapes, ignoreFirst=config.ignoreFirst,
-                                periodsAhead_list=config.periodsAhead_list, threshold=threshold,
-                                maxDist=config.ug_maxDist, methods=config.ug_methods)
+        print("Grid prediction")
+        compute_predictions(data=data, gridshapes=config.ug_gridshapes, ignoreFirst=config.ignoreFirst,
+                            periodsAhead_list=config.periodsAhead_list, threshold=config.ug_threshold[
+                                0],
+                            maxDist=config.ug_maxDist, methods=config.ug_methods)
         print("Grid predictions done!")
 
     # Cluster predictions

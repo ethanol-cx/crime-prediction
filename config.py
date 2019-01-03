@@ -3,18 +3,18 @@ ignoreFirst = 225
 periodsAhead_list = [1, 16]
 
 # Uniform grids
-grid_prediction = 0
+grid_prediction = 1
 ug_gridshapes = [(16, 16)]
 ug_maxDist = 0
 ug_threshold = [0]
-ug_methods = ["mm"]
+ug_methods = ["MA", "AR", "ARIMA"]
 
 # Clusters
 cluster_prediction = 1
 c_gridshapes = [(16, 16)]
-c_thresholds = [3000, 4000]
+c_thresholds = [500, 1000, 1500, 2000, 3000, 4000]
 c_maxDist = 1
-c_methods = ["mm"]
+c_methods = ["MA", "AR", "ARIMA"]
 
 # Evaluation
 resource_indexes = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40]

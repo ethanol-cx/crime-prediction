@@ -21,29 +21,42 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
         df = realCrimes['C{}_Crimes'.format(c)]
         # train test split
         train = df[:-test_size]
+        if train.sum() < 2:
+            continue
         test = df[-test_size:]
         # apply appropriate ranges for the grid search based on the `method`
         p_max = 0
         q_max = 0
+        P_max = 0
+        Q_max = 0
         if method == 'MA' or method == 'ARIMA':
-            q_max = 5
+            q_max = 3
+            Q_max = 3
         elif method == 'AR' or method == 'ARIMA':
-            p_max = 5
+            p_max = 3
+            P_max = 3
 
-        # get the optimal combination of the hyperparameters through grid search given that we had only the training data
-        stepwise_model = auto_arima(train, start_p=0, max_p=p_max, start_q=0, max_q=q_max, m=52, start_P=0, max_P=0, start_Q=0,
-                                    max_Q=5, seasonal=True, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True, disp=0)
+        # get the optimal combination of the hyperparameters through stepwise search given that we had only the training data
+        stepwise_model = auto_arima(train, start_p=0, max_p=p_max, start_q=0, max_q=q_max, m=52, start_P=0, max_P=P_max, start_Q=0,
+                                    max_Q=Q_max, seasonal=True, trace=True, error_action='ignore', suppress_warnings=True, stepwise=False,
+                                    max_d=2, max_D=1, disp=0)
 
         # `history` is initialized to `train` and increases as more observations are given in the `test`
         history = train
 
         # for each predict horizon - `periodsAhead`, we perform rolling window time series prediction with different window sizes
         for periodsAhead in periodsAhead_list:
+            print(c, periodsAhead)
             periodsAhead_cntr += 1
             predictions = np.zeros(test_size)
             for i in range(test_size):
-                pred_model = sm.tsa.statespace.SARIMAX(
-                    history, order=stepwise_model.order, seasonal_order=stepwise_model.seasonal_order)
+                pred_model = None
+                if stepwise_model.seasonal_order:
+                    pred_model = sm.tsa.statespace.SARIMAX(
+                        endog=history, order=stepwise_model.order, seasonal_order=stepwise_model.seasonal_order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
+                else:
+                    pred_model = sm.tsa.statespace.SARIMAX(
+                        endog=history, order=stepwise_model.order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
                 # TODO: could have started at the parameters used in the previous model instead of starting from the default params
                 coef_results = pred_model.fit(disp=0)
                 pred = coef_results.get_prediction(
@@ -53,10 +66,11 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
                 history.append(pd.Series(test[i]), ignore_index=True)
 
             # apply the assumption that all predictions should be non-negative
-            predictions = [x if x > 0 else 0 for x in predictions]
+            predictions = [x if x >= 0 else 0 for x in predictions]
 
             # store the prediction to the corresponding column `periodsAhead_cntr` and `cluster_cntr`
             forecasted_data[periodsAhead_cntr][cluster_cntr] = predictions
+
         # reset the periodsAhead_cntr
         periodsAhead_cntr = -1
 

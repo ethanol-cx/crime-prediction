@@ -9,8 +9,6 @@ def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDis
     # create grid: assign crimes to cells
 
     dataGrid = pd.DataFrame(gridLatLong(ts, gridshape))
-    # newDataGrid = pd.DataFrame(
-    #     {'Category': np.array(dataGrid['Category']).flatten(), 'Latitude': np.array(dataGrid['Latitude']).flatten(), 'Longitude': np.array(dataGrid['Longitude']).flatten(), 'Date': np.array(dataGrid['Date']).flatten(), 'LatCell': np.array(dataGrid['LatCell']).flatten(), 'LonCell': np.array(dataGrid['LonCell']).flatten()})
     ts = pd.DataFrame({'Crimes': dataGrid.groupby(
         ['LatCell', 'LonCell', 'Date']).Date.count()}).reset_index()
     ts.index = pd.DatetimeIndex(ts.Date)
@@ -90,7 +88,6 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
         row, mask, gridshape) for key, row in trainingGrid.iterrows()]
     trainingGrid['Colisions'] = [computeColisions(
         row, grid, gridshape) for key, row in trainingGrid.iterrows()]
-    # expand one neighbor per geometry
     iGeo = 0
     # store expanded clusters (do not copy the result in a new variable cuz it may resort the lines)
     alreadyExpanded = set()
@@ -109,15 +106,14 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                                    for x in colisions.Cluster]]
 
         possible = 0
-        while trainingGrid.loc[row.name, 'Crimes'] < threshold and colisions.shape[0] > possible:
+        while trainingGrid.loc[row.name, 'Crimes'] < threshold and possible < colisions.shape[0]:
             # commit agglutination (using the smaller id possible)
-            while (colisions.shape[0] > possible):
+            while (possible < colisions.shape[0]):
                 aggRow = colisions.iloc[possible]
                 possible += 1
                 # do not use clusters already expanded
                 if aggRow.Cluster in alreadyExpanded:
                     continue
-
                 alreadyExpanded.add(aggRow.Cluster)
 
                 # add the colisions/neighbours of the newly merged cell that belong to no clusters into our potential merging list of thie "row" cell.
@@ -125,7 +121,7 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                     aggRow.Colisions)].sort_values(by=['Crimes'], ascending=False)
                 newColisions = newColisions.loc[[
                     (x not in alreadyExpanded) for x in newColisions.Cluster]]
-                pd.concat([colisions, newColisions], axis=0)
+                colisions = pd.concat([colisions, newColisions], axis=0)
 
                 trainingGrid.loc[row.name, 'Crimes'] += aggRow.Crimes
 
@@ -136,21 +132,20 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                 trainingGrid.set_value(
                     row.name, 'Geometry', trainingGrid.loc[row.name, 'Geometry'] + newLabel)
                 trainingGrid.drop(aggRow.name, inplace=True)
-                break  # just expand once
-
         # compute next geometry
         iGeo += 1
-    return (trainingGrid, grid)
+    print(trainingGrid)
+    return trainingGrid
 
 
 def initializeGeometries(ts, ignoreFirst, gridshape):
     trainingGrid = add_ElapsedWeeks(ts.copy()).query('ElapsedWeeks < {}'.format(ignoreFirst))\
         .groupby(by=['LatCell', 'LonCell'])['Crimes'].sum().reset_index().sort_values(by=['Crimes'], ascending=False)
     trainingGrid.set_index(['LatCell', 'LonCell'], inplace=True)
-
     trainingGrid['Cluster'] = np.array(range(trainingGrid.shape[0])) + 1
     trainingGrid['Geometry'] = [sparse.coo_matrix(
         ([g+1], ([lat], [lon])), shape=gridshape).tocsr() for (g, (lat, lon)) in enumerate(trainingGrid.index)]
+    print(trainingGrid['Geometry'])
     trainingGrid['Dilatation'] = None
     return trainingGrid
 
@@ -187,7 +182,7 @@ def computeClusters(ts, ignoreFirst, threshold, maxDist, gridshape):
         # expand border mask
         mask = np.array(list(set(map(tuple, np.concatenate(
             [coord + mask_unit for coord in mask]))) - {(0, 0)}))
-        trainingGrid, grid = agglutinateCollisions(
+        trainingGrid = agglutinateCollisions(
             trainingGrid, threshold, grid, mask, gridshape)
 
     return trainingGrid
