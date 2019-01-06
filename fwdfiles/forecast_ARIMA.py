@@ -9,6 +9,7 @@ from fwdfiles.general_functions import savePredictions
 
 
 def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirst, threshold, maxDist, orders=[], seasonal_orders=[]):
+    assert method in ['MA', 'MR', 'ARIMA']
     print("Starting Predictions_{}".format(method))
     cluster_size = len(clusters.Cluster.values)
     cluster_cntr = -1
@@ -44,26 +45,37 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
         # `history` is initialized to `train` and increases as more observations are given in the `test`
         history = train
 
-        # for each predict horizon - `periodsAhead`, we perform rolling window time series prediction with different window sizes
+        pred_model = None
+        if method == 'MA':
+            pred_model = sm.tsa.statespace.SARIMAX(endog=history, order=(0, 1, 1), seasonal_order=(
+                0, 0, 1, 52), enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
+        elif method == 'AR':
+            pred_model = sm.tsa.statespace.SARIMAX(endog=history, order=(3, 1, 0), seasonal_order=(
+                1, 0, 0, 52), enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
+        else:
+            pred_model = sm.tsa.statespace.SARIMAX(endog=history, order=(2, 1, 1), seasonal_order=(
+                1, 0, 1, 52), enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
+        coef_results = pred_model.fit(disp=0)
+        if stepwise_model.seasonal_order:
+            pred_model = sm.tsa.statespace.SARIMAX(
+                endog=history, order=stepwise_model.order, seasonal_order=stepwise_model.seasonal_order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
+        else:
+            pred_model = sm.tsa.statespace.SARIMAX(
+                endog=history, order=stepwise_model.order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
+
+        # for each predict horizon - `periodsAhead`, we perform rolling time series prediction with different window sizes
+        # Note: the the `start` and the `end` defines the window and splits the observation and the "y_test"
         for periodsAhead in periodsAhead_list:
             print(c, periodsAhead)
             periodsAhead_cntr += 1
             predictions = np.zeros(test_size)
             for i in range(test_size):
-                pred_model = None
-                if stepwise_model.seasonal_order:
-                    pred_model = sm.tsa.statespace.SARIMAX(
-                        endog=history, order=stepwise_model.order, seasonal_order=stepwise_model.seasonal_order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
-                else:
-                    pred_model = sm.tsa.statespace.SARIMAX(
-                        endog=history, order=stepwise_model.order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
                 # TODO: could have started at the parameters used in the previous model instead of starting from the default params
-                coef_results = pred_model.fit(disp=0)
                 pred = coef_results.get_prediction(
                     start=i+len(train)-periodsAhead, end=i+len(train))
                 t_predictions = pred.predicted_mean
                 predictions[i] = t_predictions.values[-1]
-                history.append(pd.Series(test[i]), ignore_index=True)
+                # history.append(pd.Series(test[i]), ignore_index=True)
 
             # apply the assumption that all predictions should be non-negative
             predictions = [x if x >= 0 else 0 for x in predictions]
@@ -74,10 +86,11 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
         # reset the periodsAhead_cntr
         periodsAhead_cntr = -1
 
-        # store the prediction
-        for i in range(len(periodsAhead_list)):
-            forecasts = pd.DataFrame(data=forecasted_data[i].T, columns=['C{}_Forecast'.format(c)
-                                                                         for c in clusters.Cluster.values])
-            forecasts.index = df[-test_size:].index
-            savePredictions(clusters, realCrimes, forecasts, method,
-                            gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
+    # store the prediction
+    for i in range(len(periodsAhead_list)):
+        periodsAhead = periodsAhead_list[i]
+        forecasts = pd.DataFrame(data=forecasted_data[i].T, columns=['C{}_Forecast'.format(c)
+                                                                     for c in clusters.Cluster.values])
+        forecasts.index = df[-test_size:].index
+        savePredictions(clusters, realCrimes, forecasts, method,
+                        gridshape, ignoreFirst, periodsAhead, threshold, maxDist)
