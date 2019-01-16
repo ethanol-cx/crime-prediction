@@ -35,8 +35,7 @@ def main(ifilename):
         print("Making grid predictions...")
         print("Grid prediction")
         compute_predictions(data=data, gridshapes=config.ug_gridshapes, ignoreFirst=config.ignoreFirst,
-                            periodsAhead_list=config.periodsAhead_list, threshold=config.ug_threshold[
-                                0],
+                            periodsAhead_list=config.periodsAhead_list, threshold=config.ug_threshold[0],
                             maxDist=config.ug_maxDist, methods=config.ug_methods)
         print("Grid predictions done!")
 

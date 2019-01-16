@@ -1,5 +1,19 @@
+# Annoying tilde backup files
+*~
+.idea
+.vscode
+*.log
+*.swp
+
 __pycache__/*
+*/__pycache__/*
 .ipynb_checkpoints/*
 .vscode/*
 results/*
+parameters/*
 config.py
+*.png
+*.ipynb
+
+# output
+console.txt

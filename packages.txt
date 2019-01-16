@@ -1,7 +1,4 @@
-os
-sys
 pandas
-pickle
 scipy
 datetime
 pyramid

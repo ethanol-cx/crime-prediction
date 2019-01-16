@@ -4,6 +4,8 @@ from datetime import date
 from datetime import timedelta
 import os
 import pickle
+import math
+from pathlib import Path
 
 # count the amount of weeks elapsed since the begining of the database
 
@@ -43,15 +45,15 @@ def gridLatLong(data, gridshape, inplace=False):
     return data
 
 
-def savePredictions(clusters, realCrimes, forecasts, algo,
+def savePredictions(clusters, realCrimes, forecasts, method,
                     gridshape, ignoreFirst,
                     periodsAhead, threshold, maxDist):
     # save it to disk
     os.makedirs(os.path.abspath("results/"), exist_ok=True)
-    os.makedirs(os.path.abspath("results/{}".format(algo)), exist_ok=True)
+    os.makedirs(os.path.abspath("results/{}".format(method)), exist_ok=True)
     fileName = os.path.abspath(
         "results/{}/{}_predictions_grid({},{})_ignore({})_ahead({})_threshold({})_dist({}).pkl".format(
-            algo, algo, *gridshape, ignoreFirst, periodsAhead, threshold, maxDist
+            method, method, *gridshape, ignoreFirst, periodsAhead, threshold, maxDist
         )
     )
     output = open(fileName, 'wb')
@@ -60,18 +62,28 @@ def savePredictions(clusters, realCrimes, forecasts, algo,
     return
 
 
-def saveParameters(orders, seasonal_orders, algo,
-                   gridshape=(60, 85), ignoreFirst=149,
-                   periodsAhead=52, threshold=4000, maxDist=5):
+def saveParameters(orders, seasonal_orders, method,
+                   gridshape, cluster_id, ignoreFirst,
+                   threshold, maxDist):
     # save it to disk
     os.makedirs(os.path.abspath("parameters/"), exist_ok=True)
-    os.makedirs(os.path.abspath("parameters/{}".format(algo)), exist_ok=True)
+    os.makedirs(os.path.abspath("parameters/{}".format(method)), exist_ok=True)
     fileName = os.path.abspath(
-        "parameters/{}/{}_parameters_grid({},{})_ignore({})_ahead({})_threshold({})_dist({}).pkl".format(
-            algo, algo, *gridshape, ignoreFirst, periodsAhead, threshold, maxDist
+        "parameters/{}/{}_parameters_grid({},{})_cluster({})_ignore({})_threshold({})_dist({}).pkl".format(
+            method, method, *gridshape, cluster_id, ignoreFirst, threshold, maxDist
         )
     )
     output = open(fileName, 'wb')
     pickle.dump((orders, seasonal_orders), output)
     output.close()
     return
+
+
+def getAreaFromLatLon(lon1, lon2, lat1, lat2):
+    return (math.pi / 180) * 10 ** 9 * math.fabs(math.sin(lat1) - math.sin(lat2)) * math.fabs(lon1-lon2)
+
+
+def getIfParametersExists(method, gridshape, cluster_id, ignoreFirst, threshold, maxDist):
+    if Path("parameters/{}/{}_parameters_grid({},{})_cluster({})_ignore({})_threshold({})_dist({}).pkl".format(method, method, *gridshape, cluster_id, ignoreFirst, threshold, maxDist)).is_file():
+        return pd.read_pickle("parameters/{}/{}_parameters_grid({},{})_cluster({})_ignore({})_threshold({})_dist({}).pkl".format(method, method, *gridshape, cluster_id, ignoreFirst, threshold, maxDist))
+    return None
