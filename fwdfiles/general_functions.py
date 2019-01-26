@@ -80,7 +80,7 @@ def saveParameters(orders, seasonal_orders, method,
 
 
 def getAreaFromLatLon(lon1, lon2, lat1, lat2):
-    return (math.pi / 180) * 10 ** 9 * math.fabs(math.sin(lat1) - math.sin(lat2)) * math.fabs(lon1-lon2)
+    return (math.pi / 180) * 10 ** 7 * math.fabs(math.sin(lat1) - math.sin(lat2)) * math.fabs(lon1-lon2)
 
 
 def getIfParametersExists(method, gridshape, cluster_id, ignoreFirst, threshold, maxDist):

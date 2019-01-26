@@ -101,8 +101,6 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
         # retrieve colisions and sort by relevance
         colisions = trainingGrid.loc[trainingGrid.Cluster.isin(
             row.Colisions)].sort_values(by=['Crimes'], ascending=False)
-        # ignore agglutination if greater than threshold (or with itself)
-        # colisions = colisions.loc[np.array(colisions.Cluster!=row.Cluster) & np.array((colisions.Crimes+row.Crimes)<=threshold)]
         colisions = colisions.loc[[(x not in alreadyExpanded)
                                    for x in colisions.Cluster]]
 
@@ -116,7 +114,16 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                 if aggRow.Cluster in alreadyExpanded:
                     continue
                 alreadyExpanded.add(aggRow.Cluster)
+                old_value = trainingGrid.loc[row.name, 'Crimes']
                 trainingGrid.loc[row.name, 'Crimes'] += aggRow.Crimes
+                assert old_value + \
+                    aggRow.Crimes == trainingGrid.loc[row.name, 'Crimes']
+                # add the colisions/neighbours of the newly merged cell that belong to no clusters into our potential merging list of thie "row" cell.
+                newColisions = trainingGrid.loc[trainingGrid.Cluster.isin(
+                    aggRow.Colisions)].sort_values(by=['Crimes'], ascending=False)
+                newColisions = newColisions.loc[[
+                    (x not in alreadyExpanded) for x in newColisions.Cluster]]
+                pd.concat([colisions, newColisions], axis=0)
 
                 # change the cluster label to row.Cluster
                 newLabel = aggRow.Geometry.copy()
@@ -169,10 +176,9 @@ def computeClusters(ts, ignoreFirst, threshold, maxDist, gridshape):
         grid = row + grid
 
     # Increase thickness of the border for colision
-    for _ in range(maxDist):
-        mask = np.array(list(set(map(tuple, np.concatenate(
-            [coord + mask_unit for coord in mask]))) - {(0, 0)}))
-        trainingGrid = agglutinateCollisions(
-            trainingGrid, threshold, grid, mask, gridshape)
+    mask = np.array(list(set(map(tuple, np.concatenate(
+        [coord + mask_unit for coord in mask]))) - {(0, 0)}))
+    trainingGrid = agglutinateCollisions(
+        trainingGrid, threshold, grid, mask, gridshape)
 
     return trainingGrid

@@ -2,6 +2,7 @@ import pickle
 import pandas as pd
 import sys
 import os
+from fwdfiles.forecast_LSTM import forecast_LSTM
 from fwdfiles.forecast_ARIMA import forecast_ARIMA
 from fwdfiles.cluster_functions import computeClustersAndOrganizeData
 import config
@@ -23,8 +24,12 @@ def compute_predictions(data, gridshapes, ignoreFirst, periodsAhead_list,
         print('Computing predictions ...')
 
         for method in methods:
-            forecast_ARIMA(method=method, clusters=clusters, realCrimes=realCrimes,
-                           periodsAhead_list=periodsAhead_list, gridshape=gridshape, ignoreFirst=ignoreFirst, threshold=threshold, maxDist=maxDist, orders=[], seasonal_orders=[])
+            if method == "LSTM":
+                forecast_LSTM(clusters=clusters, realCrimes=realCrimes,
+                              periodsAhead_list=periodsAhead_list, gridshape=gridshape, ignoreFirst=ignoreFirst, threshold=threshold, maxDist=maxDist)
+            else:
+                forecast_ARIMA(method=method, clusters=clusters, realCrimes=realCrimes,
+                               periodsAhead_list=periodsAhead_list, gridshape=gridshape, ignoreFirst=ignoreFirst, threshold=threshold, maxDist=maxDist, orders=[], seasonal_orders=[])
 
 
 def main(ifilename):
@@ -35,7 +40,8 @@ def main(ifilename):
         print("Making grid predictions...")
         print("Grid prediction")
         compute_predictions(data=data, gridshapes=config.ug_gridshapes, ignoreFirst=config.ignoreFirst,
-                            periodsAhead_list=config.periodsAhead_list, threshold=config.ug_threshold[0],
+                            periodsAhead_list=config.periodsAhead_list, threshold=config.ug_threshold[
+                                0],
                             maxDist=config.ug_maxDist, methods=config.ug_methods)
         print("Grid predictions done!")
 

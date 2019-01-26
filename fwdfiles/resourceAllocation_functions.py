@@ -17,8 +17,8 @@ def assignResources(forecast, clusters, cell_coverage_units=1, available_resourc
         if (forecast.loc[cluster] > 0):
             cluster_area = clusters.iloc[geo].Area
             # allocate as many resouces as needed, without exceeding the amount available
-            amount = min(
-                np.ceil(forecast.loc[cluster]*cluster_area/cell_coverage_units), available_resources)
+            amount = min(forecast.loc[cluster]*cluster_area //
+                         cell_coverage_units, available_resources)
             allocation[geo] = amount
             # update available resources
             available_resources -= amount
