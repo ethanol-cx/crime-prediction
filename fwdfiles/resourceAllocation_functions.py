@@ -71,39 +71,9 @@ def computeFixedMetricAllForecasts(forecasts, realCrimes, date_idx, clusters, ce
     # avoided = pd.DataFrame([(realCrimes.iloc[realCrimeIdx], potential)]).min
     return avoided
 
-# compute the full metric for a specific date
-
-
-def computeFullMetricAllForecasts(forecasts, realCrimes, date_idx, clusters, cell_coverage_units=1):
-    # forecast to compute
-    forecast = forecasts.iloc[date_idx]
-
-    # sort clusters by minimum area (compute outside the function)
-    #clusters['Area'] = clusters.Geometry.map(lambda g: g.data.size)
-    #clusters.sort_values(by=['Area','Crimes'], ascending=[True, False], inplace=True)
-
-    # assign as many resources as required by the forecast
-    _, allocation = assignResources(
-        forecast, clusters, cell_coverage_units, available_resources=np.inf)
-
-    #
-    # computing the resource allocation evaluation
-    #
-
-    # potential crimes avoided is forecasted crimes (as many as required)
-    potential = pd.Series(forecast.values, index=[
-                          f[:-len('Forecast')]+'Crimes' for f in forecast.index])
-    # Result: real crimes avoided
-    avoided = pd.DataFrame([realCrimes.iloc[date_idx], potential]).min()
-
-    return (avoided.sum(), allocation.sum())
-
-
-#
-# The following functions compute (different) scores for a period of evaluation (ignoring first dates)
-#
 
 # compute amount of stopped crimes for all forecasted dates
+
 def computeStoppedCrime(forecasts, realCrimes, clusters, cell_coverage_units, available_resources):
     # avoided crimes for each date, ignoring training data
     return ([computeFixedMetricAllForecasts(forecasts, realCrimes, date_idx, clusters, cell_coverage_units, available_resources)
@@ -117,34 +87,9 @@ def computeRelativeStoppedCrime(forecasts, realCrimes, clusters, cell_coverage_u
     return pd.Series(data=np.array(computeStoppedCrime(forecasts, realCrimes, clusters, cell_coverage_units, available_resources)) /
                      np.array(realCrimes.T.sum().iloc[-len(realCrimes) // 3 + 1:]), index=forecasts.index, name='Score')
 
-# compute the full metric for all forecasted dates
-
-
-def computeFullEfficiency(forecasts, realCrimes, clusters, cell_coverage_units=1):
-    #
-    # Full metric:
-    #                   avoided          avoided
-    #          =   (------------- + ---------------)*1/2    =   [(reduced-crime efficiency)+(allocation efficiency)]*1/2
-    #               #real_crimes    #resources_used
-    #
-    #          = avoided * (#real_crimes + #resources_used)/(2 * #real_crimes * #resources_used)
-    #
-
-    # ignoring training data
-    res = pd.DataFrame(data=[[*computeFullMetricAllForecasts(forecasts, realCrimes, date_idx, clusters, cell_coverage_units)]
-                             for date_idx in range(0, forecasts.shape[0])], index=forecasts.index[0:], columns=['Avoided', 'Used'])
-
-    real_crimes = realCrimes.iloc[0:].T.sum()
-    x = res.Avoided.sum()*(real_crimes.sum() + res.Used.sum())
-    y = real_crimes.sum()*res.Used.sum()
-    return x/y if y > 0 else None
-
-
-#
-# The following functions should be the main interface with scripts
-#
-
 # compute stopped crimes only, fixing the available resources
+
+
 def fixResourceAvailable(resource_indexes, ignoreFirst, forecasts, realCrimes, clusters, cell_coverage_units, unit_area):
     # sort clusters by minimum area
     clusters['Area'] = clusters.Geometry.map(lambda g: g.data.size * unit_area)
@@ -156,41 +101,3 @@ def fixResourceAvailable(resource_indexes, ignoreFirst, forecasts, realCrimes, c
         computeRelativeStoppedCrime(forecasts, realCrimes, clusters,
                                     cell_coverage_units, resources).mean()
         for resources in resource_indexes], index=resource_indexes)
-
-# compute final efficiency for crimes stopped and assigning precision
-
-
-def fullMetric_(prop_indexes, ignoreFirst, forecasts, realCrimes, clusters, cell_coverage_units):
-    # sort clusters by minimum area
-    clusters['Area'] = clusters.Geometry.map(lambda g: g.data.size)
-    clusters.sort_values(by=['Area', 'Crimes'], ascending=[
-                         True, False], inplace=True)
-
-    # mean of the full metric (final efficiency)
-    # .mean()
-    return computeFullEfficiency(forecasts, realCrimes, clusters, cell_coverage_units)
-
-
-def fullMetric(ignoreFirst, forecasts, realCrimes, clusters, cell_coverage_units, A_coverage_units):
-    clusters['Area'] = clusters.Geometry.map(lambda g: g.data.size)
-
-    _error = (forecasts.applymap(lambda r: 0 if r <
-                                 0 else r).values - realCrimes.values)[ignoreFirst:]
-    errors = pd.DataFrame(data=_error,
-                          columns=[c[:-len('Forecast')] +
-                                   'Error' for c in forecasts.columns],
-                          index=forecasts.index[ignoreFirst:])
-
-    # compute the absolute error (for normal absolute mean)
-    errors = errors.applymap(lambda c: -c if c < 0 else c)
-
-    # normalize errors by the area of each cluster
-    # 1 error for 1 cell  -> 1 error
-    # 1 error for 2 cells -> 1 error * weight 2 = 2 (less precision)
-    weights = pd.Series(data=clusters.Area.values,
-                        index=['C{}_Error'.format(c) for c in clusters.Cluster]).reindex(errors.columns).values
-    weighted_errors = errors*weights / cell_coverage_units
-
-    # 'mais correto' (algoritmo de cluster remove celulas sem crimes)
-    # return weighted_errors.sum().sum()/(weighted_errors.shape[0] * clusters.Area.sum()*cell_coverage_units)
-    return weighted_errors.sum().sum()/(weighted_errors.shape[0] * A_coverage_units)
