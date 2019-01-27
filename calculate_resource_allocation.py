@@ -1,10 +1,10 @@
 import pickle
 import sys
 import os
-# sys.path.append(os.path.abspath("fwdfiles/"))
 from fwdfiles.resourceAllocation_functions import fixResourceAvailable
 import config
 from fwdfiles.general_functions import getAreaFromLatLon
+import numpy as np
 
 
 def compute_ra_grid(resource_indexes, cell_coverage_units, gridshapes,
@@ -15,12 +15,12 @@ def compute_ra_grid(resource_indexes, cell_coverage_units, gridshapes,
         output_filename = os.path.abspath(
             "results/grid/grid_{}ahead.pkl".format(periodsAhead))
 
-        MA_results = []
-        AR_results = []
-        ARIMA_results = []
+        results = np.zeros(len(methods), len(gridshapes))
 
-        for gridshape in gridshapes:
-            for method in methods:
+        for i in range(len(gridshapes)):
+            gridshape = gridshapes[i]
+            for j in range(len(methods)):
+                method = methods[j]
                 file = os.path.abspath("results/{}/{}_predictions_grid({},{})_ignore({})_ahead({})_threshold({})_dist({}).pkl".format(
                     method, method, gridshape[0], gridshape[1], ignoreFirst, periodsAhead, threshold, dist))
                 with open(file, "rb") as ifile:
@@ -29,20 +29,13 @@ def compute_ra_grid(resource_indexes, cell_coverage_units, gridshapes,
                     config.lon_min, config.lon_max, config.lat_min, config.lat_max) / (gridshape[0] * gridshape[1])
                 scores = fixResourceAvailable(resource_indexes, 0, forecasts, realCrimes, clusters, cell_coverage_units, unit_area).rename(
                     "{} ({}x{})".format(method, gridshape[0], gridshape[1]))
-                if method == 'MA':
-                    MA_results.append(scores)
-                elif method == 'AR':
-                    AR_results.append(scores)
-                elif method == 'ARIMA':
-                    ARIMA_results.append(scores)
-                else:
-                    print("ERROR: wrong method")
+                results[j][i] = scores
 
         with open(output_filename, "wb") as ofile:
-            pickle.dump((MA_results, AR_results, ARIMA_results), ofile)
+            pickle.dump(results, ofile)
 
 
-def compute_ra_clustering(resource_indexes, cell_coverage_units, gridshape, periodsAhead_list, ignoreFirst, thresholds, dist, methods):
+def compute_ra_clustering(resource_indexes, cell_coverage_units, gridshapes, periodsAhead_list, ignoreFirst, thresholds, dist, methods):
     for periodsAhead in periodsAhead_list:
         os.makedirs(os.path.abspath("results/"), exist_ok=True)
         os.makedirs(os.path.abspath("results/cluster"), exist_ok=True)
@@ -50,32 +43,25 @@ def compute_ra_clustering(resource_indexes, cell_coverage_units, gridshape, peri
             "results/cluster/cluster_{}ahead.pkl".format(periodsAhead))
         output_filename = os.path.abspath(
             "results/cluster/cluster_{}ahead.pkl".format(periodsAhead))
-
-        MA_results = []
-        AR_results = []
-        ARIMA_results = []
-
-        for threshold in thresholds:
-            for method in methods:
-                file = os.path.abspath("results/{}/{}_predictions_grid({},{})_ignore({})_ahead({})_threshold({})_dist({}).pkl".format(
-                    method, method, gridshape[0], gridshape[1], ignoreFirst, periodsAhead, threshold, dist))
-                with open(file, "rb") as ifile:
-                    clusters, realCrimes, forecasts = pickle.load(ifile)
-                unit_area = getAreaFromLatLon(
-                    config.lon_min, config.lon_max, config.lat_min, config.lat_max) / (gridshape[0] * gridshape[1])
-                scores = fixResourceAvailable(resource_indexes, 0, forecasts, realCrimes, clusters, cell_coverage_units,
-                                              unit_area).rename("{} ({})".format(method, threshold))
-                if method == 'MA':
-                    MA_results.append(scores)
-                elif method == 'AR':
-                    AR_results.append(scores)
-                elif method == 'ARIMA':
-                    ARIMA_results.append(scores)
-                else:
-                    print("ERROR: wrong method")
-
+        i = -1
+        j = -1
+        results = np.zeros(len(methods), len(gridshapes) * len(thresholds))
+        for gridshape in gridshapes:
+            for threshold in thresholds:
+                i += 1
+                for method in methods:
+                    j += 1
+                    file = os.path.abspath("results/{}/{}_predictions_grid({},{})_ignore({})_ahead({})_threshold({})_dist({}).pkl".format(
+                        method, method, gridshape[0], gridshape[1], ignoreFirst, periodsAhead, threshold, dist))
+                    with open(file, "rb") as ifile:
+                        clusters, realCrimes, forecasts = pickle.load(ifile)
+                    unit_area = getAreaFromLatLon(
+                        config.lon_min, config.lon_max, config.lat_min, config.lat_max) / (gridshape[0] * gridshape[1])
+                    scores = fixResourceAvailable(resource_indexes, 0, forecasts, realCrimes, clusters, cell_coverage_units,
+                                                  unit_area).rename("{} grid:({}, {}) threshold:({})".format(method, gridshape[0], gridshape[1], threshold))
+                    results[j][i] = scores
         with open(output_filename, "wb") as ofile:
-            pickle.dump((MA_results, AR_results, ARIMA_results), ofile)
+            pickle.dump(results, ofile)
 
 
 def main():
@@ -91,7 +77,7 @@ def main():
     if config.cluster_prediction == 1:
         print("Scoring cluster predictions...")
         compute_ra_clustering(config.resource_indexes, config.cell_coverage_units,
-                              config.c_gridshapes[0], config.periodsAhead_list,
+                              config.c_gridshapes, config.periodsAhead_list,
                               config.ignoreFirst, config.c_thresholds,
                               config.c_maxDist, config.c_methods)
 
