@@ -35,7 +35,6 @@ def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDis
     # add crimes per cluster
     for selCluster in clusters.Cluster.values:
         # find geometry (cells) of the cluster
-
         selGeometry = clusters[clusters.Cluster ==
                                selCluster].Geometry.values[0].nonzero()
         # filter crimes inside the geometry
@@ -48,7 +47,6 @@ def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDis
 
         for value in clusters[clusters.Cluster == selCluster].Geometry.values[1:]:
             selGeometry = value.nonzero()
-
             # filter crimes inside the geometry
             weeks_t = ts.copy().set_index(['LatCell', 'LonCell']).loc[list(
                 zip(*selGeometry))].groupby(by=['Date']).Crimes.sum().reset_index()
@@ -101,9 +99,9 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
         # retrieve colisions and sort by relevance
         colisions = trainingGrid.loc[trainingGrid.Cluster.isin(
             row.Colisions)].sort_values(by=['Crimes'], ascending=False)
+        # do not use clusters already expanded
         colisions = colisions.loc[[(x not in alreadyExpanded)
                                    for x in colisions.Cluster]]
-
         potential_neighbor_idx = 0
         while trainingGrid.loc[row.name, 'Crimes'] < threshold and potential_neighbor_idx < colisions.shape[0]:
             # commit agglutination (using the smaller id potential_neighbor_idx)
@@ -111,24 +109,20 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                 aggRow = colisions.iloc[potential_neighbor_idx]
                 potential_neighbor_idx += 1
                 # do not use clusters already expanded
+                # this is required when the cluster in the `collisions` is referred by `newcollisions` before it is added to `alreadyExpanded`
                 if aggRow.Cluster in alreadyExpanded:
                     continue
                 alreadyExpanded.add(aggRow.Cluster)
                 old_value = trainingGrid.loc[row.name, 'Crimes']
                 trainingGrid.loc[row.name, 'Crimes'] += aggRow.Crimes
-                assert old_value + \
-                    aggRow.Crimes == trainingGrid.loc[row.name, 'Crimes']
                 # add the colisions/neighbours of the newly merged cell that belong to no clusters into our potential merging list of thie "row" cell.
                 newColisions = trainingGrid.loc[trainingGrid.Cluster.isin(
                     aggRow.Colisions)].sort_values(by=['Crimes'], ascending=False)
                 newColisions = newColisions.loc[[
                     (x not in alreadyExpanded) for x in newColisions.Cluster]]
-                pd.concat([colisions, newColisions], axis=0)
-
-                # change the cluster label to row.Cluster
+                colisions = pd.concat([colisions, newColisions], axis=0)
+                # add the cluster label to row.Cluster
                 newLabel = aggRow.Geometry.copy()
-                newLabel.data = np.array([row.Cluster])
-
                 trainingGrid.set_value(
                     row.name, 'Geometry', trainingGrid.loc[row.name, 'Geometry'] + newLabel)
                 trainingGrid.drop(aggRow.name, inplace=True)
@@ -166,18 +160,14 @@ def computeClusters(ts, ignoreFirst, threshold, maxDist, gridshape):
     # * * *
     # * x *
     # * * *
-    mask_unit = np.array(
+    mask = np.array(
         [(-1, -1), (-1, 0), (0, -1), (1, 1), (1, 0), (0, 1), (-1, 1), (1, -1)])
-    mask = [(0, 0)]
 
     # create grid board with the clustering labels
     grid = sparse.csr_matrix(gridshape, dtype=np.int32)
     for row in trainingGrid.Geometry.values:
         grid = row + grid
 
-    # Increase thickness of the border for colision
-    mask = np.array(list(set(map(tuple, np.concatenate(
-        [coord + mask_unit for coord in mask]))) - {(0, 0)}))
     trainingGrid = agglutinateCollisions(
         trainingGrid, threshold, grid, mask, gridshape)
 
