@@ -1,5 +1,0 @@
-Reconstructed the code and corrected minor bugs. Major changes include:
-1. Merged the previous `forecast_ar`, `forecast_mm`, `forecast_harmonic` into `forecast_ARIMA`
-2. Reduced repeated parameter fitting by reconstructing the data pipeline.
-3. Removed the previous `ScriptForecast`, which was used at the initial stage of development as a testing script.
-4. Organized the class/method structure.
