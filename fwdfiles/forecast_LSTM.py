@@ -10,6 +10,23 @@ import matplotlib.pyplot as plt
 from fwdfiles.general_functions import savePredictions, saveParameters, getIfParametersExists
 
 
+def plotPrediction(df, trainPredict, testPredict, look_back, scaler):
+                # shift train predictions for plotting
+    trainPredictPlot = np.empty_like(df)
+    trainPredictPlot[:, :] = np.nan
+    trainPredictPlot[look_back:len(
+        trainPredict)+look_back, :] = trainPredict
+    # shift test predictions for plotting
+    testPredictPlot = np.empty_like(df)
+    testPredictPlot[:, :] = np.nan
+    testPredictPlot[len(trainPredict)+(look_back):, :] = testPredict
+    # plot baseline and predictions
+    plt.plot(scaler.inverse_transform(df))
+    plt.plot(trainPredictPlot)
+    plt.plot(testPredictPlot)
+    plt.show()
+
+
 def create_X_y(data, look_back):
     X = []
     y = []
@@ -21,7 +38,8 @@ def create_X_y(data, look_back):
 
 def load_LSTM_model(look_back, batch_size):
     model = Sequential()
-    model.add(LSTM(batch_size, input_shape=(look_back, 1)))
+    model.add(LSTM(4, batch_input_shape=(
+        batch_size, look_back, 1), stateful=True))
     model.add(Dense(1))
     model.compile(loss='mean_squared_error', optimizer='adam')
     return model
@@ -37,7 +55,7 @@ def forecast_LSTM(clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirs
     forecasted_data = np.zeros(
         (len(periodsAhead_list), cluster_size, test_size))
     look_back = 3
-    batch_size = 3
+    batch_size = 1
     model = load_LSTM_model(look_back, batch_size)
     test_predict_index = None
     for c in clusters.Cluster.values:
@@ -53,8 +71,10 @@ def forecast_LSTM(clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirs
         y_test = y[-test_size:]
         X_train = X[:-test_size]
         X_test = X[-test_size:]
-        model.fit(X_train, y_train, epochs=500,
-                  batch_size=batch_size, verbose=2, shuffle=False)
+        for i in range(100):
+            model.fit(X_train, y_train, epochs=1,
+                      batch_size=batch_size, verbose=2, shuffle=False)
+            model.reset_states()
         trainPredict = model.predict(X_train, batch_size=batch_size)
 
         # invert predictions
@@ -71,15 +91,23 @@ def forecast_LSTM(clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirs
             testPredict = np.zeros(test_size)
 
             # start from the first row of the features
-            X_test_i = X_test[0].reshape(1, -1, 1)
             for i in range(test_size):
-                pred = model.predict(X_test_i, batch_size=batch_size)
+                X_test_i = X_test[i].reshape(1, -1, 1)
+                print('real X_test_i {}'.format(X_test_i))
+                for _ in range(periodsAhead):
+                    print(X_test_i)
+                    pred = model.predict(X_test_i, batch_size=1)
+                    X_test_i = np.append(
+                        X_test_i[:, 1:, :][0], pred[-1]).reshape(1, -1, 1)
                 testPredict[i] = pred[-1]  # it contains one data: `pred_i`
-                X_test_i = np.append(
-                    X_test_i[:, 1:, :][0], pred[-1]).reshape(1, -1, 1)
 
             testPredict = scaler.inverse_transform(testPredict.reshape(-1, 1))
+
+            # Could insert plotPrediction() here to see the prediction results while running
+
+            # flatten the testPredict to store
             testPredict = testPredict.flatten()
+
             # apply the constraint that all predictions should be non-negative
             testPredict = [x if x >= 0 else 0 for x in testPredict]
 
