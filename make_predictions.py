@@ -4,6 +4,7 @@ import sys
 import os
 from fwdfiles.forecast_LSTM import forecast_LSTM
 from fwdfiles.forecast_ARIMA import forecast_ARIMA
+from fwdfiles.forecast_MM import forecast_MM
 from fwdfiles.cluster_functions import computeClustersAndOrganizeData
 import config
 
@@ -27,9 +28,12 @@ def compute_predictions(data, gridshapes, ignoreFirst, periodsAhead_list,
             if method == "LSTM":
                 forecast_LSTM(clusters=clusters, realCrimes=realCrimes,
                               periodsAhead_list=periodsAhead_list, gridshape=gridshape, ignoreFirst=ignoreFirst, threshold=threshold, maxDist=maxDist)
-            else:
+            elif method == "ARIMA" or method == "AR":
                 forecast_ARIMA(method=method, clusters=clusters, realCrimes=realCrimes,
                                periodsAhead_list=periodsAhead_list, gridshape=gridshape, ignoreFirst=ignoreFirst, threshold=threshold, maxDist=maxDist, orders=[], seasonal_orders=[])
+            else:
+                forecast_MM(method=method, clusters=clusters, realCrimes=realCrimes,
+                            periodsAhead_list=periodsAhead_list, gridshape=gridshape, ignoreFirst=ignoreFirst, threshold=threshold, maxDist=maxDist)
 
 
 def main(ifilename):
