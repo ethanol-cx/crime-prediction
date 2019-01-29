@@ -6,7 +6,8 @@ import os
 import pickle
 import math
 from pathlib import Path
-
+from matplotlib import pyplot as plt
+from sklearn.metrics import mean_squared_error
 # count the amount of weeks elapsed since the begining of the database
 
 
@@ -87,3 +88,12 @@ def getIfParametersExists(method, gridshape, cluster_id, ignoreFirst, threshold,
     if Path("parameters/{}/{}_parameters_grid({},{})_cluster({})_ignore({})_threshold({})_dist({}).pkl".format(method, method, *gridshape, cluster_id, ignoreFirst, threshold, maxDist)).is_file():
         return pd.read_pickle("parameters/{}/{}_parameters_grid({},{})_cluster({})_ignore({})_threshold({})_dist({}).pkl".format(method, method, *gridshape, cluster_id, ignoreFirst, threshold, maxDist))
     return None
+
+
+def plotTimeSeries(df, testPredict, file_path):
+    testPredict.index = df[-len(testPredict):].index
+    # plot baseline and predictions
+    plt.plot(df)
+    plt.plot(testPredict)
+    plt.savefig(file_path)
+    plt.close()
