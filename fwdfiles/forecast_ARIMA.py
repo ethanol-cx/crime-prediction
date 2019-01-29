@@ -36,7 +36,7 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
             print("Loading existing parameters for ...")
             print(params)
             pred_model = sm.tsa.statespace.SARIMAX(endog=df, order=params[0], seasonal_order=params[1],
-                                                   enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
+                                                   enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
         else:
             # apply appropriate ranges for the grid search based on the `method`
             p_max = 0
@@ -70,10 +70,10 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
 
             if stepwise_model.seasonal_order:
                 pred_model = sm.tsa.statespace.SARIMAX(
-                    endog=df, order=stepwise_model.order, seasonal_order=stepwise_model.seasonal_order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
+                    endog=df, order=stepwise_model.order, seasonal_order=stepwise_model.seasonal_order, enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
             else:
                 pred_model = sm.tsa.statespace.SARIMAX(
-                    endog=df, order=stepwise_model.order, enforce_stationarity=True, enforce_invertibility=True, hamilton_representation=False)
+                    endog=df, order=stepwise_model.order, enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
         coef_results = pred_model.fit(disp=0)
 
         # for each predict horizon - `periodsAhead`, we perform rolling time series prediction with different window sizes
