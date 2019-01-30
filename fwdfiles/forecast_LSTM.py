@@ -93,9 +93,7 @@ def forecast_LSTM(clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirs
             # start from the first row of the features
             for i in range(test_size):
                 X_test_i = X_test[i].reshape(1, -1, 1)
-                print('real X_test_i {}'.format(X_test_i))
                 for _ in range(periodsAhead):
-                    print(X_test_i)
                     pred = model.predict(X_test_i, batch_size=1)
                     X_test_i = np.append(
                         X_test_i[:, 1:, :][0], pred[-1]).reshape(1, -1, 1)
