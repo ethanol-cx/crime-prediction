@@ -85,7 +85,7 @@ def computeStoppedCrime(forecasts, realCrimes, clusters, cell_coverage_units, av
 def computeRelativeStoppedCrime(forecasts, realCrimes, clusters, cell_coverage_units=1, available_resources=10000):
     # compute all next dates, ignore training data
     return pd.Series(data=np.array(computeStoppedCrime(forecasts, realCrimes, clusters, cell_coverage_units, available_resources)) /
-                     np.array(realCrimes.T.sum().iloc[-len(realCrimes) // 3 + 1:]), index=forecasts.index, name='Score')
+                     np.array(realCrimes.T.sum().iloc[-(len(realCrimes)) // 3:]), index=forecasts.index, name='Score')
 
 # compute stopped crimes only, fixing the available resources
 
