@@ -19,11 +19,6 @@ def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDis
         ts, ignoreFirst, threshold=threshold, maxDist=maxDist, gridshape=gridshape)
     clusters = clusters.sort_values(by=['Crimes'], ascending=False)
 
-    #
-    # Organize data to weekly crimes
-    #
-    # create a dataframe with all weeks
-
     # range of prediction, filling missing values with 0
     dailyIdx = pd.date_range(
         start=ts.Date.min(), end=ts.Date.max(), freq='D', name='Date')
@@ -87,11 +82,12 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
         row, mask, gridshape) for key, row in trainingGrid.iterrows()]
     trainingGrid['Colisions'] = [computeColisions(
         row, grid, gridshape) for key, row in trainingGrid.iterrows()]
-    iGeo = 0
-    # store expanded clusters (do not copy the result in a new variable cuz it may resort the lines)
+    i = 0
+    # store expanded clusters
     alreadyExpanded = set()
-    while(iGeo < trainingGrid.shape[0]):
-        row = trainingGrid.iloc[iGeo]
+    rowNamesToDrop = []
+    for i in range(len(trainingGrid)):
+        row = trainingGrid.iloc[i]
         # check if it is a new cluster
         if row.Cluster in alreadyExpanded:
             continue
@@ -104,36 +100,38 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
                                    for x in colisions.Cluster]]
         potential_neighbor_idx = 0
         while trainingGrid.loc[row.name, 'Crimes'] < threshold and potential_neighbor_idx < colisions.shape[0]:
-            # commit agglutination (using the smaller id potential_neighbor_idx)
-            while (potential_neighbor_idx < colisions.shape[0]):
-                aggRow = colisions.iloc[potential_neighbor_idx]
-                potential_neighbor_idx += 1
-                # do not use clusters already expanded
-                # this is required when the cluster in the `collisions` is referred by `newcollisions` before it is added to `alreadyExpanded`
-                if aggRow.Cluster in alreadyExpanded:
-                    continue
-                alreadyExpanded.add(aggRow.Cluster)
-                old_value = trainingGrid.loc[row.name, 'Crimes']
-                trainingGrid.loc[row.name, 'Crimes'] += aggRow.Crimes
-                # add the colisions/neighbours of the newly merged cell that belong to no clusters into our potential merging list of thie "row" cell.
-                newColisions = trainingGrid.loc[trainingGrid.Cluster.isin(
-                    aggRow.Colisions)].sort_values(by=['Crimes'], ascending=False)
-                newColisions = newColisions.loc[[
-                    (x not in alreadyExpanded) for x in newColisions.Cluster]]
-                colisions = pd.concat([colisions, newColisions], axis=0)
-                # add the cluster label to row.Cluster
-                newLabel = aggRow.Geometry.copy()
-                trainingGrid.set_value(
-                    row.name, 'Geometry', trainingGrid.loc[row.name, 'Geometry'] + newLabel)
-                trainingGrid.drop(aggRow.name, inplace=True)
-        # compute next geometry
-        iGeo += 1
+           # commit agglutination
+            aggRow = colisions.iloc[potential_neighbor_idx]
+            potential_neighbor_idx += 1
+            # this is required when the cluster in the `collisions` is referred by `newcollisions` before it is added to `alreadyExpanded`
+            if aggRow.Cluster in alreadyExpanded:
+                continue
+            alreadyExpanded.add(aggRow.Cluster)
+            trainingGrid.loc[row.name, 'Crimes'] += aggRow.Crimes
+            # add the colisions/neighbours of the newly merged cell that belong to no clusters into our potential merging list of thie "row" cell.
+            newColisions = trainingGrid.loc[trainingGrid.Cluster.isin(
+                aggRow.Colisions)].sort_values(by=['Crimes'], ascending=False)
+            newColisions = newColisions.loc[[
+                (x not in alreadyExpanded) for x in newColisions.Cluster]]
+            colisions = pd.concat([colisions, newColisions], axis=0)
+            print(list(colisions.Cluster))
+            # add the cluster label to row.Cluster
+            newLabel = aggRow.Geometry.copy()
+            trainingGrid.at[row.name,
+                            'Geometry'] = trainingGrid.loc[row.name, 'Geometry'] + newLabel
+            trainingGrid.at[row.name, 'Colisions'] = list(colisions.Cluster)
+            # trainingGrid.drop(aggRow.name, inplace=True)
+            rowNamesToDrop.append(aggRow.name)
+    for name in rowNamesToDrop:
+        trainingGrid.drop(name, inplace=True)
+
     return trainingGrid
 
 
 def initializeGeometries(ts, ignoreFirst, gridshape):
     trainingGrid = add_ElapsedWeeks(ts.copy()).query('ElapsedWeeks < {}'.format(ignoreFirst))\
         .groupby(by=['LatCell', 'LonCell'])['Crimes'].sum().reset_index().sort_values(by=['Crimes'], ascending=False)
+
     trainingGrid.set_index(['LatCell', 'LonCell'], inplace=True)
     trainingGrid['Cluster'] = np.array(range(trainingGrid.shape[0])) + 1
     trainingGrid['Geometry'] = [sparse.coo_matrix(
@@ -168,7 +166,34 @@ def computeClusters(ts, ignoreFirst, threshold, maxDist, gridshape):
     for row in trainingGrid.Geometry.values:
         grid = row + grid
 
+    # first phase of clutering
+    print("Starting Phase One of the clutering...")
     trainingGrid = agglutinateCollisions(
         trainingGrid, threshold, grid, mask, gridshape)
+    print("Finished Phase One!")
+
+    # phase two: clearing small "holds" by merging them with the largest neighbour
+    print("Starting Phase Two of the clustering...")
+    filter_threshold = threshold // 10
+    droppedRowNames = set()
+    for i in range(trainingGrid.shape[0]):
+        row = trainingGrid.iloc[i]
+        if row.Crimes < filter_threshold:
+            print("DEBUG::try to merge")
+            parentColisions = trainingGrid.loc[[row.Cluster in colisions for colisions in
+                                                trainingGrid.Colisions]].sort_values(by=['Crimes'], ascending=False)
+            for _, parentClusterRow in parentColisions.iterrows():
+                if parentClusterRow.name not in droppedRowNames:
+                    parentClusterRow.Crimes += row.Crimes
+                    # add the cluster label to parentRow.Cluster
+                    newLabel = row.Geometry.copy()
+                    trainingGrid.at[parentClusterRow.name,
+                                    'Geometry'] = trainingGrid.loc[parentClusterRow.name, 'Geometry'] + newLabel
+                    droppedRowNames.add(row.name)
+                    break
+    for name in droppedRowNames:
+        print("DEBUG::droppping and merging")
+        trainingGrid.drop(name, inplace=True)
+    print("Finished Phase Two!")
 
     return trainingGrid

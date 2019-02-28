@@ -7,7 +7,9 @@ from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
-from fwdfiles.general_functions import savePredictions, saveParameters, getIfParametersExists
+from pathlib import Path
+import os
+from fwdfiles.general_functions import savePredictions
 
 
 def plotPrediction(df, trainPredict, testPredict, look_back, scaler):
@@ -51,7 +53,7 @@ def forecast_LSTM(clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirs
     cluster_size = len(clusters.Cluster.values)
     cluster_cntr = -1
     periodsAhead_cntr = -1
-    test_size = len(realCrimes['C1_Crimes']) // 3
+    test_size = len(realCrimes) // 3
     forecasted_data = np.zeros(
         (len(periodsAhead_list), cluster_size, test_size))
     look_back = 3
@@ -71,10 +73,21 @@ def forecast_LSTM(clusters, realCrimes, periodsAhead_list, gridshape, ignoreFirs
         y_test = y[-test_size:]
         X_train = X[:-test_size]
         X_test = X[-test_size:]
-        for i in range(100):
-            model.fit(X_train, y_train, epochs=1,
-                      batch_size=batch_size, verbose=2, shuffle=False)
-            model.reset_states()
+        file_path = "parameters/{}/{}_parameters_grid({},{})_cluster({})_ignore({})_threshold({})_dist({}).h5".format(
+            'LSTM', 'LSTM', *gridshape, c, ignoreFirst, threshold, maxDist)
+        if Path(file_path).is_file():
+            print("Loading existing weights ...")
+            model.load_weights(file_path)
+        else:
+            for i in range(80):
+                model.fit(X_train, y_train, epochs=1,
+                          batch_size=batch_size, verbose=2, shuffle=False)
+                model.reset_states()
+            # save weights
+            os.makedirs(os.path.abspath("parameters/"), exist_ok=True)
+            os.makedirs(os.path.abspath(
+                "parameters/{}".format('LSTM')), exist_ok=True)
+            model.save_weights(file_path)
         trainPredict = model.predict(X_train, batch_size=batch_size)
 
         # invert predictions
