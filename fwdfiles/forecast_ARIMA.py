@@ -13,7 +13,7 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
     cluster_size = len(clusters.Cluster.values)
     cluster_cntr = -1
     periodsAhead_cntr = -1
-    test_size = len(realCrimes['C1_Crimes']) // 3
+    test_size = len(realCrimes) // 3
     forecasted_data = np.zeros(
         (len(periodsAhead_list), cluster_size, test_size))
     for c in clusters.Cluster.values:
@@ -26,7 +26,6 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
         if train.sum() < 2:
             continue
 
-        test = df[-test_size:]
         pred_model = None
 
         # if the parameters exist

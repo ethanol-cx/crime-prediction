@@ -21,7 +21,7 @@ def forecast_MM(method, clusters, realCrimes, periodsAhead_list, gridshape, igno
     cluster_size = len(clusters.Cluster.values)
     cluster_cntr = -1
     periodsAhead_cntr = -1
-    test_size = len(realCrimes['C1_Crimes']) // 3
+    test_size = len(realCrimes) // 3
     forecasted_data = np.zeros(
         (len(periodsAhead_list), cluster_size, test_size))
     for c in clusters.Cluster.values:
@@ -53,14 +53,6 @@ def forecast_MM(method, clusters, realCrimes, periodsAhead_list, gridshape, igno
 
             # store the prediction to the corresponding column `periodsAhead_cntr` and `cluster_cntr`
             forecasted_data[periodsAhead_cntr][cluster_cntr] = predictions
-
-        if (forecasted_data[0][cluster_cntr] - forecasted_data[1][cluster_cntr]).sum() == 0:
-            if (forecasted_data[0][cluster_cntr].sum() > 3):
-                print('the Same!!')
-                print(forecasted_data[0][cluster_cntr].sum())
-        else:
-            print((forecasted_data[0][cluster_cntr] -
-                   forecasted_data[1][cluster_cntr]).sum())
 
         # reset the periodsAhead_cntr
         periodsAhead_cntr = -1

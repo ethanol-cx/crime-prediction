@@ -9,6 +9,24 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 # count the amount of weeks elapsed since the begining of the database
+from math import radians, cos, sin, asin, sqrt
+
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 6371
+    return c * r
 
 
 def add_ElapsedWeeks(data, inplace=False):
@@ -81,7 +99,7 @@ def saveParameters(orders, seasonal_orders, method,
 
 
 def getAreaFromLatLon(lon1, lon2, lat1, lat2):
-    return (math.pi / 180) * 10 ** 7 * math.fabs(math.sin(lat1) - math.sin(lat2)) * math.fabs(lon1-lon2)
+    return (math.pi / 180) * 10 ** 6 * math.fabs(math.sin(lat1) - math.sin(lat2)) * math.fabs(lon1-lon2)
 
 
 def getIfParametersExists(method, gridshape, cluster_id, ignoreFirst, threshold, maxDist):
