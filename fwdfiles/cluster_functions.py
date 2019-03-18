@@ -114,13 +114,11 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
             newColisions = newColisions.loc[[
                 (x not in alreadyExpanded) for x in newColisions.Cluster]]
             colisions = pd.concat([colisions, newColisions], axis=0)
-            print(list(colisions.Cluster))
             # add the cluster label to row.Cluster
             newLabel = aggRow.Geometry.copy()
             trainingGrid.at[row.name,
                             'Geometry'] = trainingGrid.loc[row.name, 'Geometry'] + newLabel
             trainingGrid.at[row.name, 'Colisions'] = list(colisions.Cluster)
-            # trainingGrid.drop(aggRow.name, inplace=True)
             rowNamesToDrop.append(aggRow.name)
     for name in rowNamesToDrop:
         trainingGrid.drop(name, inplace=True)
@@ -131,8 +129,11 @@ def agglutinateCollisions(trainingGrid, threshold, grid, mask, gridshape):
 def initializeGeometries(ts, ignoreFirst, gridshape):
     trainingGrid = add_ElapsedWeeks(ts.copy()).query('ElapsedWeeks < {}'.format(ignoreFirst))\
         .groupby(by=['LatCell', 'LonCell'])['Crimes'].sum().reset_index().sort_values(by=['Crimes'], ascending=False)
-
     trainingGrid.set_index(['LatCell', 'LonCell'], inplace=True)
+    for i in range(gridshape[0]):
+        for j in range(gridshape[1]):
+            if (i,j) not in list(trainingGrid.index.values):
+                trainingGrid.ix[(i,j),:] = 0
     trainingGrid['Cluster'] = np.array(range(trainingGrid.shape[0])) + 1
     trainingGrid['Geometry'] = [sparse.coo_matrix(
         ([g+1], ([lat], [lon])), shape=gridshape).tocsr() for (g, (lat, lon)) in enumerate(trainingGrid.index)]
@@ -179,20 +180,24 @@ def computeClusters(ts, ignoreFirst, threshold, maxDist, gridshape):
     for i in range(trainingGrid.shape[0]):
         row = trainingGrid.iloc[i]
         if row.Crimes < filter_threshold:
-            print("DEBUG::try to merge")
             parentColisions = trainingGrid.loc[[row.Cluster in colisions for colisions in
                                                 trainingGrid.Colisions]].sort_values(by=['Crimes'], ascending=False)
             for _, parentClusterRow in parentColisions.iterrows():
                 if parentClusterRow.name not in droppedRowNames:
                     parentClusterRow.Crimes += row.Crimes
                     # add the cluster label to parentRow.Cluster
+                    newColisions = row.Colisions.copy()
+                    colisions = parentClusterRow.Colisions
+                    colisions += newColisions
+                    colisions = list(set(colisions))
                     newLabel = row.Geometry.copy()
                     trainingGrid.at[parentClusterRow.name,
                                     'Geometry'] = trainingGrid.loc[parentClusterRow.name, 'Geometry'] + newLabel
+                    trainingGrid.at[parentClusterRow.name,
+                                    'Colisions'] = colisions
                     droppedRowNames.add(row.name)
                     break
     for name in droppedRowNames:
-        print("DEBUG::droppping and merging")
         trainingGrid.drop(name, inplace=True)
     print("Finished Phase Two!")
 

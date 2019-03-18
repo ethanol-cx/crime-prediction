@@ -33,7 +33,6 @@ def forecast_ARIMA(method, clusters, realCrimes, periodsAhead_list, gridshape, i
             method, gridshape, c, ignoreFirst, threshold, maxDist)
         if params:
             print("Loading existing parameters for ...")
-            print(params)
             pred_model = sm.tsa.statespace.SARIMAX(endog=df, order=params[0], seasonal_order=params[1],
                                                    enforce_stationarity=False, enforce_invertibility=False, hamilton_representation=False)
         else:

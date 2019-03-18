@@ -21,8 +21,8 @@ def plot_resource_allocation(ax, gridshapes, periodsAhead, thresholds, methods, 
                     'LA' if ignoreFirst == 104 else 'USC', method, gridshape[0], gridshape[1], threshold, periodsAhead))
                 with open(file, "rb") as ifile:
                     result = pickle.load(ifile)
-                if threshold == 0:
-                    ax[i].plot(result, marker='o')
+                if threshold != 0:
+                    ax[i].plot(result, marker='o', alpha=0.85)
                     ax[i].legend()
                     continue
                 ax[i].plot(result, alpha=0.85)
@@ -43,6 +43,7 @@ def main():
                 ax, config.c_gridshapes, periodsAhead, config.c_thresholds, config.c_methods, config.ignoreFirst)
         plt.savefig(
             'results/plots/{}-week-ahead.png'.format(periodsAhead), dpi=300)
+
 
 if __name__ == "__main__":
     main()
