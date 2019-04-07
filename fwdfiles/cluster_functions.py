@@ -8,17 +8,14 @@ import numpy as np
 def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDist):
 
     # create grid: assign crimes to cells
-
     dataGrid = pd.DataFrame(gridLatLong(ts, gridshape))
     ts = pd.DataFrame({'Crimes': dataGrid.groupby(
         ['LatCell', 'LonCell', 'Date']).Date.count()}).reset_index()
-    ts.index = pd.DatetimeIndex(ts.Date)
 
     # compute clusters using threshold and max distance from the border
     clusters = computeClusters(
         ts, ignoreFirst, threshold=threshold, maxDist=maxDist, gridshape=gridshape)
     clusters = clusters.sort_values(by=['Crimes'], ascending=False)
-
     # range of prediction, filling missing values with 0
     dailyIdx = pd.date_range(
         start=ts.Date.min(), end=ts.Date.max(), freq='D', name='Date')
@@ -27,29 +24,20 @@ def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDis
 
     # dataframe with real crimes and clusters
     realCrimes = pd.DataFrame().reindex(weeklyIdx)
+
+    print(ts)
     # add crimes per cluster
     for selCluster in clusters.Cluster.values:
         # find geometry (cells) of the cluster
         selGeometry = clusters[clusters.Cluster ==
                                selCluster].Geometry.values[0].nonzero()
         # filter crimes inside the geometry
-        weeks = ts.copy().set_index(['LatCell', 'LonCell']).loc[list(
-            zip(*selGeometry))].groupby(by=['Date']).Crimes.sum().reset_index()
+        weeks = ts.loc[[False if tuple([ts_elem.LatCell, ts_elem.LonCell])
+                        in list(zip(*selGeometry)) else True for ts_elem in ts.itertuples()]].groupby(['Date']).Crimes.sum().reset_index()
         weeks.index = pd.DatetimeIndex(weeks.Date)
         # resample to weekly data and normalize index
         weeks = weeks.Crimes.reindex(dailyIdx).fillna(0).resample('W').mean().reindex(
             weeklyIdx).fillna(0).rename('C{}_Crimes'.format(selCluster))
-
-        for value in clusters[clusters.Cluster == selCluster].Geometry.values[1:]:
-            selGeometry = value.nonzero()
-            # filter crimes inside the geometry
-            weeks_t = ts.copy().set_index(['LatCell', 'LonCell']).loc[list(
-                zip(*selGeometry))].groupby(by=['Date']).Crimes.sum().reset_index()
-            weeks_t.index = pd.DatetimeIndex(weeks_t.Date)
-            # resample to weekly data and normalize index
-            weeks_t = weeks_t.Crimes.reindex(dailyIdx).fillna(0).resample('W').mean(
-            ).reindex(weeklyIdx).fillna(0).rename('C{}_Crimes'.format(selCluster))
-            weeks += weeks_t
         # save crimes in dataframe
         realCrimes = realCrimes.join(weeks)
 
@@ -132,8 +120,8 @@ def initializeGeometries(ts, ignoreFirst, gridshape):
     trainingGrid.set_index(['LatCell', 'LonCell'], inplace=True)
     for i in range(gridshape[0]):
         for j in range(gridshape[1]):
-            if (i,j) not in list(trainingGrid.index.values):
-                trainingGrid.ix[(i,j),:] = 0
+            if (i, j) not in list(trainingGrid.index.values):
+                trainingGrid.ix[(i, j), :] = 0
     trainingGrid['Cluster'] = np.array(range(trainingGrid.shape[0])) + 1
     trainingGrid['Geometry'] = [sparse.coo_matrix(
         ([g+1], ([lat], [lon])), shape=gridshape).tocsr() for (g, (lat, lon)) in enumerate(trainingGrid.index)]
