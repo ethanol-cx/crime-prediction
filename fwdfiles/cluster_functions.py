@@ -25,15 +25,16 @@ def computeClustersAndOrganizeData(ts, gridshape, ignoreFirst, threshold, maxDis
     # dataframe with real crimes and clusters
     realCrimes = pd.DataFrame().reindex(weeklyIdx)
 
-    print(ts)
     # add crimes per cluster
     for selCluster in clusters.Cluster.values:
         # find geometry (cells) of the cluster
         selGeometry = clusters[clusters.Cluster ==
                                selCluster].Geometry.values[0].nonzero()
         # filter crimes inside the geometry
-        weeks = ts.loc[[False if tuple([ts_elem.LatCell, ts_elem.LonCell])
-                        in list(zip(*selGeometry)) else True for ts_elem in ts.itertuples()]].groupby(['Date']).Crimes.sum().reset_index()
+        filter_list = [True if tuple([ts_elem.LatCell, ts_elem.LonCell])
+                       in list(zip(*selGeometry)) else False for ts_elem in ts.itertuples()]
+        weeks = ts.loc[filter_list]
+        weeks = weeks.groupby(['Date']).Crimes.sum().reset_index()
         weeks.index = pd.DatetimeIndex(weeks.Date)
         # resample to weekly data and normalize index
         weeks = weeks.Crimes.reindex(dailyIdx).fillna(0).resample('W').mean().reindex(
